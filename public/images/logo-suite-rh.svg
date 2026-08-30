@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="6 2 178 44">
+  <!-- Marca: personas + check de aprobación -->
+  <g fill="#1867C0">
+    <circle cx="21" cy="15" r="7"/>
+    <path d="M8 35c0-7.2 5.8-12 13-12s13 4.8 13 12"/>
+  </g>
+  <g fill="#48A9A6">
+    <circle cx="36" cy="17" r="5"/>
+    <path d="M27 35c0-5 3.8-8.5 9-8.5s9 3.5 9 8.5"/>
+  </g>
+  <path d="M41.2 10.2l2.8 3 5.2-5.7" stroke="#4CAF50" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wordmark -->
+  <text x="56" y="31" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="0.5" fill="#0D2B52">Suite</text>
+  <text x="113" y="31" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="800" letter-spacing="0.5" fill="#48A9A6">RH</text>
+</svg>

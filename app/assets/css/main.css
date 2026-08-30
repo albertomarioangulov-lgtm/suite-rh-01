@@ -1,0 +1,54 @@
+/* Base global: reset de márgenes y tipografía Inter */
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+/* Menús y listas: separación icono-texto más compacta (default de Vuetify: 32px) */
+:root {
+  --v-list-prepend-gap: 16px;
+}
+
+/* Aplica Inter también a los componentes de Vuetify */
+.v-application {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Las tablas de datos de las listas se presentan como tarjetas:
+   contorno hairline, esquinas redondeadas y separación del toolbar. */
+.v-data-table,
+.v-data-table-server {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Los toolbars de página (no el AppBar) también son tarjetas redondeadas,
+   para que hagan juego con la tabla que tienen debajo. */
+.v-toolbar:not(.v-app-bar) {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  border-radius: 12px;
+}
+
+.v-toolbar:not(.v-app-bar) .v-toolbar__content {
+  gap: 8px;
+  padding: 4px;
+}
+
+/* Neutraliza los 4px extra que Vuetify pone en el primer/último botón,
+   para que el margen derecho quede igual al superior e izquierdo. */
+.v-toolbar:not(.v-app-bar) .v-toolbar__content > .v-btn {
+  margin-inline: 0;
+}
+
+/* El campo de búsqueda comparte el redondeo del toolbar. */
+.v-toolbar:not(.v-app-bar) .v-toolbar__content > .v-text-field .v-field {
+  border-radius: 12px;
+}
