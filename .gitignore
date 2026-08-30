@@ -1,6 +1,10 @@
 # Nuxt dev/build outputs
 .output
 .data
+
+# Propuestas comerciales con precios (no versionar valores sensibles)
+docs/propuesta-comercial.md
+docs/propuesta-sencilla.md
 .nuxt
 .nitro
 .cache
