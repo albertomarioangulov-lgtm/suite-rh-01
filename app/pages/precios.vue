@@ -27,6 +27,7 @@ const plans = [
       'Ausencias y permisos',
       'Reportes básicos',
       'Hasta 10 empleados incluidos',
+      'Centro de ayuda integrado',
       'Soporte por correo',
     ],
   },

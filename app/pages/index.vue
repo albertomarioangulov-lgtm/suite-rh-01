@@ -164,6 +164,11 @@ const benefits = [
     title: 'Alertas en tiempo real',
     text: 'Notificaciones de nóminas pendientes y novedades, sin depender de hojas de cálculo.',
   },
+  {
+    icon: 'mdi-lifebuoy',
+    title: 'Centro de ayuda integrado',
+    text: 'Manual en línea por módulo, ayuda contextual en cada página y base legal laboral colombiana.',
+  },
 ]
 
 const roles = [
