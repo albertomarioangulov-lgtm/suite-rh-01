@@ -262,6 +262,17 @@ Ejemplos: 20 empleados → Básico $200.000/mes · Profesional $320.000/mes · E
 4. Liquidar nómina del mes → aprobar → ver el desglose.
 5. Cerrar con el dashboard: KPIs, evolución, heatmap y gauge.
 
+### 6.5 Material de venta ya construido
+
+La landing pública (`/`) incluye un rediseño profesional con hero, módulos, pasos, roles y una sección **Demo** con capturas reales del sistema:
+
+- `public/screenshots/empleados.png` — ficha y gestión de empleados.
+- `public/screenshots/nomina.png` — liquidación de nómina.
+- `public/screenshots/ausencias.png` — ausencias y permisos.
+- `public/screenshots/dashboard-real.png` — dashboard de analítica (captura real, alargada, recortada).
+
+Las capturas se generaron desde la propia aplicación con datos demo a 2x. Para actualizarlas: iniciar sesión, navegar a la vista, capturar a 2x y reemplazar el PNG correspondiente (la landing las referencia directamente desde `public/screenshots/`).
+
 ---
 
 ## 7. HOJA DE RUTA
