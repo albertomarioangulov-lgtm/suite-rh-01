@@ -18,7 +18,7 @@ useHead({
       content:
         'Empleados, asistencia, ausencias, nómina y reportes con cumplimiento de la normativa colombiana.',
     },
-    { property: 'og:image', content: '/screenshots/dashboard1.png' },
+    { property: 'og:image', content: '/screenshots/og-dashboard.jpg' },
   ],
 })
 
@@ -340,7 +340,7 @@ const roles = [
                 <span class="shot-dot"></span>
                 <span class="shot-url">app.suite-rh.com/reports</span>
               </div>
-              <img src="/screenshots/dashboard1.png" alt="Dashboard de Suite RH — indicadores" loading="lazy" />
+              <img src="/screenshots/dashboard1.webp" alt="Dashboard de Suite RH — indicadores" loading="lazy" />
               <div class="shot-label">Dashboard de analítica — indicadores</div>
             </div>
           </v-col>
@@ -352,7 +352,7 @@ const roles = [
                 <span class="shot-dot"></span>
                 <span class="shot-url">app.suite-rh.com/reports</span>
               </div>
-              <img src="/screenshots/dashboard2.png" alt="Dashboard de Suite RH — gráficos" loading="lazy" />
+              <img src="/screenshots/dashboard2.webp" alt="Dashboard de Suite RH — gráficos" loading="lazy" />
               <div class="shot-label">Dashboard de analítica — gráficos</div>
             </div>
           </v-col>
@@ -361,9 +361,9 @@ const roles = [
         <v-row>
           <v-col
             v-for="shot in [
-              { src: '/screenshots/empleados.png', label: 'Gestión de empleados' },
-              { src: '/screenshots/nomina.png', label: 'Liquidación de nómina' },
-              { src: '/screenshots/ausencias.png', label: 'Ausencias y permisos' },
+              { src: '/screenshots/empleados.webp', label: 'Gestión de empleados' },
+              { src: '/screenshots/nomina.webp', label: 'Liquidación de nómina' },
+              { src: '/screenshots/ausencias.webp', label: 'Ausencias y permisos' },
             ]"
             :key="shot.src"
             cols="12"

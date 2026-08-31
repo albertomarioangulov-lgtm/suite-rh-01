@@ -47,7 +47,7 @@ export const modules: SuiteModule[] = [
         text: 'Protección de datos personales: el expediente del empleado se gestiona bajo los principios de finalidad, necesidad y confidencialidad.',
       },
     ],
-    screenshot: '/screenshots/empleados.png',
+    screenshot: '/screenshots/empleados.webp',
     color: '#3B82F6',
   },
   {
@@ -149,7 +149,7 @@ export const modules: SuiteModule[] = [
         text: 'Permiso remunerado para ejercer el derecho al voto.',
       },
     ],
-    screenshot: '/screenshots/ausencias.png',
+    screenshot: '/screenshots/ausencias.webp',
     color: '#7C3AED',
   },
   {
@@ -185,7 +185,7 @@ export const modules: SuiteModule[] = [
         text: 'Aportes parafiscales (SENA, ICBF, caja de compensación) según el tamaño de la empresa.',
       },
     ],
-    screenshot: '/screenshots/nomina.png',
+    screenshot: '/screenshots/nomina.webp',
     color: '#1867C0',
   },
   {
@@ -238,7 +238,7 @@ export const modules: SuiteModule[] = [
       'Exportación de indicadores a CSV.',
       'Alertas operativas en tiempo real (SSE).',
     ],
-    screenshot: '/screenshots/dashboard1.png',
+    screenshot: '/screenshots/dashboard1.webp',
     color: '#0EA5E9',
   },
   {
