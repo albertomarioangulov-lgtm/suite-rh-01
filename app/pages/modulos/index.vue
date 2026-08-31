@@ -42,7 +42,7 @@ useHead({
             :key="module.slug"
             cols="12"
             sm="6"
-            lg="4"
+            lg="3"
           >
             <v-card
               class="h-100 module-card"

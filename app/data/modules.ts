@@ -299,6 +299,36 @@ export const modules: SuiteModule[] = [
     ],
     color: '#DB2777',
   },
+  {
+    slug: 'evaluaciones',
+    title: 'Evaluación de desempeño',
+    icon: 'mdi-clipboard-check-outline',
+    tagline: 'Plantillas configurables por cargo con ciclo controlado por RRHH.',
+    summary:
+      'Evalúa el desempeño con plantillas por cargo, control de ciclo y alcance, historial de configuración y PDF profesional.',
+    description: [
+      'Las evaluaciones se construyen con plantillas configurables por cargo: cada sección tiene un peso (%) y sus items o criterios, y solo hay una plantilla activa por cargo.',
+      'RRHH controla el ciclo completo: frecuencia y fechas, a quién se evalúa (todas las áreas o áreas específicas) y quién evalúa (jefe directo o asignación manual). Cada cambio de configuración queda versionado con usuario, fecha y motivo.',
+      'El flujo va de borrador a completada y aprobada (bloqueada), con puntaje 0–100, nivel cualitativo y un PDF profesional con el logo de la empresa.',
+    ],
+    features: [
+      'Plantillas por cargo con secciones ponderadas.',
+      'Campañas con nombre, estado y fechas del ciclo.',
+      'Alcance por área o todas las áreas.',
+      'Evaluador: jefe directo o asignación manual.',
+      'Generación masiva de evaluaciones desde la campaña.',
+      'Dashboard de campaña: avance, promedio y distribución.',
+      'Historial de configuración y auditoría.',
+      'PDF profesional con logo de la empresa.',
+    ],
+    legal: [
+      {
+        source: 'Buenas prácticas de gestión humana',
+        text: 'Evaluaciones con criterios claros, trazabilidad de decisiones y respeto a la confidencialidad de los resultados.',
+      },
+    ],
+    color: '#6366F1',
+  },
 ]
 
 export const getModule = (slug: string): SuiteModule | undefined =>

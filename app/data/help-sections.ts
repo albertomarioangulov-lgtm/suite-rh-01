@@ -871,6 +871,119 @@ export const helpSections: HelpSection[] = [
     ],
     related: ['ausencias'],
   },
+  {
+    id: 'evaluaciones',
+    title: 'Evaluaciones de desempeño',
+    icon: 'mdi-clipboard-check-outline',
+    audience: 'gestion',
+    category: 'modulos',
+    summary: 'Plantillas configurables por cargo, ciclo controlado por RRHH, puntaje y PDF.',
+    blocks: [
+      {
+        type: 'paragraph',
+        text: 'Las evaluaciones usan plantillas por cargo con secciones ponderadas. RRHH controla el ciclo (frecuencia y fechas), a quién se evalúa (todas las áreas o áreas específicas) y quién evalúa (jefe directo o asignación manual).',
+      },
+      { type: 'title', text: 'Configurar el ciclo (RRHH)' },
+      {
+        type: 'steps',
+        items: [
+          'Vaya a Configuración → Evaluaciones.',
+          'En "Parámetros generales" active el módulo y defina la frecuencia y fechas por defecto.',
+          'Guarde: el cambio queda registrado en el historial con usuario y motivo.',
+        ],
+      },
+      { type: 'title', text: 'Crear una campaña' },
+      {
+        type: 'steps',
+        items: [
+          'En Evaluaciones → Campañas, cree la campaña con nombre, estado y fechas.',
+          'Defina el alcance (todas las áreas o áreas específicas) y quién evalúa (jefe directo o asignación manual).',
+          'Pulse "Generar": el sistema crea en lote las evaluaciones del alcance con la plantilla de cada cargo.',
+          'En el detalle de la campaña siga el avance: realizadas, pendientes, promedio y gráficos.',
+        ],
+      },
+      { type: 'title', text: 'Crear una plantilla por cargo' },
+      {
+        type: 'steps',
+        items: [
+          'En Evaluaciones → Plantillas, cree una plantilla para el cargo.',
+          'Agregue secciones con peso (%) e items (preguntas o criterios).',
+          'Reparta los pesos (deben sumar 100) y guarde.',
+        ],
+      },
+      { type: 'title', text: 'Evaluar' },
+      {
+        type: 'steps',
+        items: [
+          'Cree la evaluación eligiendo empleado, período y cargo.',
+          'Califique cada item con la escala 1–5.',
+          'Completela y un administrador o gerente la aprueba.',
+          'Descargue el PDF (logo de la empresa, puntaje y nivel).',
+        ],
+      },
+      {
+        type: 'warning',
+        text: 'Una evaluación aprobada no puede modificarse. La configuración del módulo solo la cambia RRHH o el administrador, y cada cambio queda versionado.',
+        tone: 'info',
+      },
+    ],
+    faqs: [
+      {
+        q: '¿Por qué no puedo evaluar a un empleado?',
+        a: 'Verifique que el cargo tenga una plantilla activa y que el empleado tenga un jefe directo asignado (o que la regla permita asignación manual por RRHH).',
+      },
+      {
+        q: '¿Dónde veo quién cambió la configuración?',
+        a: 'En Configuración → Evaluaciones → Historial: cada versión muestra usuario, fecha, comentario y el detalle antes/después.',
+      },
+      {
+        q: '¿Qué es una campaña de evaluación?',
+        a: 'Un ciclo planificado por RRHH con nombre, fechas, alcance (todas las áreas o áreas específicas) y regla de evaluador. Desde la campaña se generan las evaluaciones en lote y se sigue el avance en su dashboard.',
+      },
+      {
+        q: '¿Puedo generar evaluaciones más de una vez?',
+        a: 'Sí, la generación es idempotente: no duplica las evaluaciones que ya existen para la campaña. Las que no tienen plantilla activa se omiten y se informa en el resultado.',
+      },
+    ],
+    related: ['organizacion', 'usuarios', 'soporte'],
+  },
+  {
+    id: 'organizacion',
+    title: 'Organización (áreas y cargos)',
+    icon: 'mdi-sitemap-outline',
+    audience: 'gestion',
+    category: 'modulos',
+    summary: 'Áreas, cargos con funciones, jefes directos y organigrama.',
+    blocks: [
+      {
+        type: 'paragraph',
+        text: 'El módulo de organización estructura la empresa: áreas con responsable y color, cargos con funciones y requisitos, y jefe directo por empleado.',
+      },
+      { type: 'title', text: 'Crear áreas y cargos' },
+      {
+        type: 'steps',
+        items: [
+          'Vaya a Configuración → Organización.',
+          'En la pestaña Áreas cree el área, su responsable y color.',
+          'En la pestaña Cargos agregue el cargo, sus funciones y requisitos.',
+        ],
+      },
+      { type: 'title', text: 'Asignar jefes' },
+      {
+        type: 'steps',
+        items: [
+          'En la ficha del empleado elija su área y cargo del catálogo.',
+          'Seleccione su jefe directo en el campo correspondiente.',
+        ],
+      },
+      { type: 'title', text: 'Ver el organigrama' },
+      {
+        type: 'paragraph',
+        text: 'En Configuración → Organización → Organigrama: vista de árbol (jerarquía con jefes ★) o sunburst (tamaño de equipo por área).',
+      },
+    ],
+    related: ['empleados', 'evaluaciones', 'reportes'],
+  },
 ]
 
 export const getHelpSection = (id: string | null): HelpSection | undefined =>

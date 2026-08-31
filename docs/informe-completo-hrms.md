@@ -158,6 +158,15 @@ tests/               # Vitest
 - Aislamiento por `tenantId`, usuarios multi-empresa, selector de empresa.
 - Sistema de licencias centralizado en proyecto aparte (ver sección 5).
 
+### 3.10 Evaluación de desempeño — ✅ Implementado
+
+- **Plantillas configurables por cargo**: secciones con peso (%) e items, una activa por cargo.
+- **Control por RRHH**: parámetros generales (frecuencia y fechas por defecto) y **campañas de evaluación** — ciclos planificados con nombre, estado (borrador/activa/cerrada), fechas, alcance (todas las áreas o áreas específicas), regla de evaluador (jefe directo o asignación manual) y autoevaluación opcional.
+- **Generación masiva**: desde una campaña se crean en lote las evaluaciones del alcance (plantilla activa por cargo, evaluador según la regla), idempotente y con conteo de omitidas.
+- **Dashboard de campaña**: KPIs (totales, realizadas, pendientes, promedio), barra de avance, donut de estado, promedio por área y distribución por nivel.
+- **Trazabilidad**: cada cambio de configuración queda versionado (snapshot antes/después, usuario, comentario); la creación y aprobación de evaluaciones queda en la auditoría.
+- **Flujo**: borrador → completada → aprobada (bloqueada), puntaje 0–100 con nivel cualitativo y **PDF profesional** (logo de la empresa + Suite RH en el pie).
+
 ---
 
 ## 4. MATRIZ DE FUNCIONALIDADES
@@ -177,6 +186,10 @@ tests/               # Vitest
 | Dashboard analítico | ✅ Implementado | ECharts, KPIs, heatmap, gauge, export CSV |
 | Portal de autoservicio | ❌ Pendiente | Empleado solicita permisos y ve recibos (3–4 días) |
 | Centro de ayuda | ✅ Implementado | Manual por módulo, ayuda contextual |
+| Organización (áreas, cargos y organigrama) | ✅ Implementado | Catálogo de áreas/cargos con funciones, jefes directos, organigrama (árbol + sunburst) |
+| Evaluación de desempeño | ✅ Implementado | Plantillas por cargo, campañas con generación masiva, dashboard por campaña, historial y PDF |
+| Contratos e historial de vinculación | ✅ Implementado | Períodos, reingresos, renovaciones y listado de contratos |
+| Landing pública y contacto | ✅ Implementado | Módulos, precios, FAQ, seguridad, contacto con anti-spam y SEO |
 | Sistema de licencias | ✅ Implementado (interno) | Proyecto aparte: productos, clientes, claves, validación |
 
 ---
@@ -296,7 +309,8 @@ Las capturas se generaron desde la propia aplicación con datos demo a 2x. Para 
 | Portal de autoservicio | 3–4 días |
 | Bajas y liquidación final (incluido en el núcleo) | 3–5 días |
 | Contratos (módulo opcional) | ✅ Implementado (núcleo de historial listo) |
-| Evaluación de desempeño | 5–8 días |
+| Evaluación de desempeño | ✅ Implementado (campañas con generación masiva, dashboard y PDF) |
+| Organización (áreas, cargos, organigrama) | ✅ Implementado |
 | Reclutamiento y selección (integrado con contratos) | 5–7 días |
 | Nómina electrónica XML | 3–5 días |
 | Biometría / QR | 2–4 días |

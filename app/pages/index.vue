@@ -81,6 +81,12 @@ const features = [
     text: 'Visualiza indicadores y exporta información para la toma de decisiones.',
   },
   {
+    slug: 'evaluaciones',
+    icon: 'mdi-clipboard-check-outline',
+    title: 'Evaluación de desempeño',
+    text: 'Plantillas por cargo, ciclo controlado por RRHH y PDF profesional.',
+  },
+  {
     slug: 'contratos',
     icon: 'mdi-file-document-multiple-outline',
     title: 'Historial y contratos',
@@ -264,7 +270,7 @@ const roles = [
         </p>
 
         <v-row>
-          <v-col v-for="feature in features" :key="feature.slug" cols="12" sm="6" lg="3">
+          <v-col v-for="feature in features" :key="feature.slug" cols="12" sm="6" lg="4">
             <v-card
               class="h-100 feature-card pa-5"
               variant="text"
