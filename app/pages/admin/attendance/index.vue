@@ -3,6 +3,10 @@ import { ROLES, type UserRole } from '~~/shared/auth'
 import type { IAttendanceRecord } from '~/composables/states/useAttendanceState'
 import { AttendanceTable } from '#components'
 import { API_PATHS } from '~/utils/api-paths'
+import { formatCOP } from '~/utils/number-helpers'
+import { formatDate } from '~~/shared/utils/datetime-helpers'
+import VChart from 'vue-echarts'
+import dayjs from 'dayjs'
 
 definePageMeta({
   middleware: 'auth',
@@ -38,11 +42,270 @@ const canDelete = computed(() => role.value === ROLES.ADMIN)
 const options = ref({ page: 1, itemsPerPage: 10 })
 const employeeOptions = ref<Array<{ title: string; value: string }>>([])
 
+// ---- Dashboard de asistencia ----
+
+interface IAttendanceDashboard {
+  summary: {
+    records: number
+    employees: number
+    hoursWorked: number
+    dayHours: number
+    nightHours: number
+    overtime: number
+    overtimeDay: number
+    overtimeNight: number
+    nightSurcharge: number
+  }
+  statusCounts: Record<string, number>
+  daily: Array<{
+    date: string
+    records: number
+    hoursWorked: number
+    overtime: number
+  }>
+  topEmployees: Array<{
+    employeeId: string
+    name: string
+    hoursWorked: number
+    records: number
+  }>
+}
+
+const dashboard = ref<IAttendanceDashboard | null>(null)
+const dashboardLoading = ref(false)
+const period = ref<'today' | '7d' | 'month' | '30d'>('30d')
+// Cache por período: volver a un rango ya consultado es instantáneo.
+const dashboardCache = new Map<string, IAttendanceDashboard>()
+
+const periodOptions = [
+  { title: 'Hoy', value: 'today' },
+  { title: '7 días', value: '7d' },
+  { title: 'Este mes', value: 'month' },
+  { title: '30 días', value: '30d' },
+]
+
+const periodRange = computed(() => {
+  const now = dayjs()
+  switch (period.value) {
+    case 'today':
+      return {
+        dateFrom: now.format('YYYY-MM-DD'),
+        dateTo: now.format('YYYY-MM-DD'),
+      }
+    case '7d':
+      return {
+        dateFrom: now.subtract(6, 'day').format('YYYY-MM-DD'),
+        dateTo: now.format('YYYY-MM-DD'),
+      }
+    case 'month':
+      return {
+        dateFrom: now.startOf('month').format('YYYY-MM-DD'),
+        dateTo: now.format('YYYY-MM-DD'),
+      }
+    default:
+      return {
+        dateFrom: now.subtract(29, 'day').format('YYYY-MM-DD'),
+        dateTo: now.format('YYYY-MM-DD'),
+      }
+  }
+})
+
+const fetchDashboard = async () => {
+  const key = `${period.value}:${periodRange.value.dateFrom}:${periodRange.value.dateTo}`
+  const cached = dashboardCache.get(key)
+  if (cached) {
+    dashboard.value = cached
+    return
+  }
+  dashboardLoading.value = true
+  try {
+    const data = await authFetch<IAttendanceDashboard>(
+      API_PATHS.attendance.dashboard,
+      { query: periodRange.value },
+    )
+    dashboard.value = data
+    dashboardCache.set(key, data)
+  } catch {
+    // Silencioso: la tabla de asistencia sigue funcionando sin el dashboard.
+  } finally {
+    dashboardLoading.value = false
+  }
+}
+
+watch(period, fetchDashboard)
+
+const dashboardKpis = computed(() => {
+  const data = dashboard.value
+  const summary = data?.summary
+  const pending = data?.statusCounts.pending ?? 0
+  return [
+    {
+      title: 'Registros',
+      value: summary?.records ?? 0,
+      suffix: `${summary?.employees ?? 0} empleado(s) con registro`,
+      icon: 'mdi-calendar-check-outline',
+      color: 'primary',
+    },
+    {
+      title: 'Horas trabajadas',
+      value: summary ? `${summary.hoursWorked.toFixed(1)}h` : '0h',
+      suffix: `${summary?.dayHours.toFixed(1) ?? '0'}h diurnas · ${summary?.nightHours.toFixed(1) ?? '0'}h nocturnas`,
+      icon: 'mdi-clock-in',
+      color: 'success',
+    },
+    {
+      title: 'Horas extra',
+      value: summary ? `${summary.overtime.toFixed(1)}h` : '0h',
+      suffix: 'Recargo nocturno incluido en la composición',
+      icon: 'mdi-clock-alert-outline',
+      color: 'warning',
+    },
+    {
+      title: 'Pendientes de aprobación',
+      value: pending,
+      suffix: data
+        ? `${data.statusCounts.approved ?? 0} aprobados · ${data.statusCounts.rejected ?? 0} rechazados`
+        : '',
+      icon: 'mdi-clock-pending-outline',
+      color: 'error',
+    },
+  ]
+})
+
+const statusDonutOptions = computed(() => {
+  const counts = dashboard.value?.statusCounts ?? {}
+  const entries = [
+    { name: 'Aprobado', value: counts.approved ?? 0, color: '#4CAF50' },
+    { name: 'Pendiente', value: counts.pending ?? 0, color: '#FB8C00' },
+    { name: 'Rechazado', value: counts.rejected ?? 0, color: '#F44336' },
+  ].filter((item) => item.value > 0)
+  return {
+    tooltip: { trigger: 'item' },
+    legend: { top: 0, left: 'center' },
+    series: [
+      {
+        name: 'Registros por estado',
+        type: 'pie' as const,
+        radius: ['42%', '68%'],
+        center: ['50%', '55%'],
+        avoidLabelOverlap: true,
+        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        data: entries.map((item) => ({
+          name: item.name,
+          value: item.value,
+          itemStyle: { color: item.color },
+        })),
+      },
+    ],
+  }
+})
+
+const hoursCompositionOptions = computed(() => {
+  const summary = dashboard.value?.summary
+  if (!summary) return { series: [{ type: 'pie', data: [] }] }
+  const entries = [
+    { name: 'Diurnas', value: summary.dayHours, color: '#1867C0' },
+    { name: 'Nocturnas', value: summary.nightHours, color: '#48A9A6' },
+    { name: 'Extras diurnas', value: summary.overtimeDay, color: '#FB8C00' },
+    { name: 'Extras nocturnas', value: summary.overtimeNight, color: '#9C27B0' },
+  ]
+  return {
+    tooltip: { trigger: 'item' },
+    legend: { top: 0, left: 'center' },
+    series: [
+      {
+        name: 'Composición de horas',
+        type: 'pie' as const,
+        radius: ['42%', '68%'],
+        center: ['50%', '55%'],
+        avoidLabelOverlap: true,
+        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        data: entries.map((item) => ({
+          name: item.name,
+          value: item.value,
+          itemStyle: { color: item.color },
+        })),
+      },
+    ],
+  }
+})
+
+const dailyOptions = computed(() => {
+  const items = dashboard.value?.daily ?? []
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, left: 'center' },
+    grid: { left: 24, right: 24, top: 48, bottom: 24 },
+    xAxis: {
+      type: 'category' as const,
+      data: items.map((item) => formatDate(item.date, 'DD/MM')),
+      axisLabel: {
+        interval: 0,
+        rotate: items.length > 12 ? 45 : 0,
+        fontSize: 10,
+      },
+    },
+    yAxis: {
+      type: 'value' as const,
+      axisLabel: { formatter: (value: number) => `${value}h` },
+    },
+    series: [
+      {
+        name: 'Horas trabajadas',
+        type: 'bar' as const,
+        barMaxWidth: 28,
+        data: items.map((item) => item.hoursWorked),
+        itemStyle: { color: '#1867C0', borderRadius: [4, 4, 0, 0] },
+      },
+      {
+        name: 'Horas extra',
+        type: 'line' as const,
+        smooth: true,
+        data: items.map((item) => item.overtime),
+        itemStyle: { color: '#FB8C00' },
+      },
+    ],
+  }
+})
+
+const topEmployeesOptions = computed(() => {
+  const items = [...(dashboard.value?.topEmployees ?? [])].slice(0, 8)
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      valueFormatter: (value: number) => `${value}h`,
+    },
+    grid: { left: 110, right: 24, top: 8, bottom: 24 },
+    xAxis: {
+      type: 'value' as const,
+      axisLabel: { formatter: (value: number) => `${value}h` },
+    },
+    yAxis: {
+      type: 'category' as const,
+      data: items.map((item) => item.name).reverse(),
+      axisLabel: { width: 120, overflow: 'truncate', fontSize: 11 },
+    },
+    series: [
+      {
+        name: 'Horas trabajadas',
+        type: 'bar' as const,
+        barMaxWidth: 18,
+        data: items.map((item) => item.hoursWorked).reverse(),
+        itemStyle: { color: '#48A9A6', borderRadius: [0, 6, 6, 0] },
+      },
+    ],
+  }
+})
+
 onMounted(async () => {
   if (route.query.employeeId) {
     setFilter('employeeId', String(route.query.employeeId))
   }
   load()
+  fetchDashboard()
   if (canManage.value) {
     try {
       const data = await authFetch<{
@@ -177,6 +440,138 @@ const handleView = (record: IAttendanceRecord) =>
         </v-btn>
       </template>
     </CommonPageHeader>
+
+    <!-- Dashboard de asistencia -->
+    <div v-if="canManage" class="mb-4">
+      <div class="d-flex align-center flex-wrap ga-2 mb-3">
+        <span class="text-subtitle-1 font-weight-bold">
+          Dashboard de asistencia
+        </span>
+        <v-spacer />
+        <v-btn-toggle
+          v-model="period"
+          density="compact"
+          color="primary"
+          variant="tonal"
+          divided
+        >
+          <v-btn
+            v-for="option in periodOptions"
+            :key="option.value"
+            :value="option.value"
+            size="small"
+          >
+            {{ option.title }}
+          </v-btn>
+        </v-btn-toggle>
+      </div>
+
+      <v-progress-linear
+        v-if="dashboardLoading"
+        indeterminate
+        color="primary"
+        height="4"
+        class="mb-2"
+      />
+
+      <template v-if="dashboard">
+        <v-row density="compact" class="mb-4">
+          <v-col
+            v-for="kpi in dashboardKpis"
+            :key="kpi.title"
+            cols="12"
+            sm="6"
+            lg="3"
+          >
+            <v-card class="h-100">
+              <v-card-text>
+                <div class="d-flex align-center ga-2 mb-2">
+                  <v-avatar :color="kpi.color" variant="tonal" size="36">
+                    <v-icon size="small" :color="kpi.color">{{ kpi.icon }}</v-icon>
+                  </v-avatar>
+                  <span class="text-caption font-weight-bold text-uppercase text-medium-emphasis">
+                    {{ kpi.title }}
+                  </span>
+                </div>
+                <div class="text-h6 font-weight-bold">{{ kpi.value }}</div>
+                <div class="text-caption text-medium-emphasis">{{ kpi.suffix }}</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row density="compact">
+          <v-col cols="12" lg="8">
+            <v-card class="h-100">
+              <v-card-item>
+                <v-card-title class="text-subtitle-1 font-weight-bold">
+                  Horas por día
+                </v-card-title>
+              </v-card-item>
+              <v-divider />
+              <v-card-text>
+                <VChart
+                  :option="dailyOptions"
+                  autoresize
+                  style="height: 280px; width: 100%"
+                />
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="6" lg="4">
+            <v-card class="h-100">
+              <v-card-item>
+                <v-card-title class="text-subtitle-1 font-weight-bold">
+                  Registros por estado
+                </v-card-title>
+              </v-card-item>
+              <v-divider />
+              <v-card-text>
+                <VChart
+                  :option="statusDonutOptions"
+                  autoresize
+                  style="height: 280px; width: 100%"
+                />
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="6" lg="4">
+            <v-card class="h-100">
+              <v-card-item>
+                <v-card-title class="text-subtitle-1 font-weight-bold">
+                  Composición de horas
+                </v-card-title>
+              </v-card-item>
+              <v-divider />
+              <v-card-text>
+                <VChart
+                  :option="hoursCompositionOptions"
+                  autoresize
+                  style="height: 280px; width: 100%"
+                />
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" lg="8">
+            <v-card class="h-100">
+              <v-card-item>
+                <v-card-title class="text-subtitle-1 font-weight-bold">
+                  Top empleados por horas trabajadas
+                </v-card-title>
+              </v-card-item>
+              <v-divider />
+              <v-card-text>
+                <VChart
+                  :option="topEmployeesOptions"
+                  autoresize
+                  style="height: 280px; width: 100%"
+                />
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </template>
+    </div>
 
     <div v-if="canManage">
       <CommonListToolbar hide-search :loading="loading">

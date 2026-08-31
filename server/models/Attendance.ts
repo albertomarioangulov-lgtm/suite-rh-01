@@ -53,6 +53,7 @@ const AttendanceSchema = new Schema(
 
 AttendanceSchema.index({ employee: 1, date: 1 }, { unique: true })
 AttendanceSchema.index({ tenantId: 1, date: -1 })
+AttendanceSchema.index({ tenantId: 1, date: 1, employee: 1 })
 AttendanceSchema.index({ status: 1 })
 
 /**
