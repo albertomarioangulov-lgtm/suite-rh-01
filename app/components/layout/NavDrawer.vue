@@ -71,7 +71,7 @@ const navItems = computed(() => [
     ? [
         {
           title: 'Asistencia',
-          icon: 'mdi-clock-in-outline',
+          icon: 'mdi-clock-in',
           to: '/admin/attendance',
         },
       ]
@@ -100,6 +100,15 @@ const navItems = computed(() => [
           title: 'Préstamos',
           icon: 'mdi-hand-coin-outline',
           to: '/admin/loans',
+        },
+      ]
+    : []),
+  ...(canViewConfig.value && isEnabled('contracts')
+    ? [
+        {
+          title: 'Contratos',
+          icon: 'mdi-file-document-multiple-outline',
+          to: '/admin/contracts',
         },
       ]
     : []),
