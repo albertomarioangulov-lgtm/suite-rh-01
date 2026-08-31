@@ -162,7 +162,7 @@ tests/               # Vitest
 
 - **Plantillas configurables por cargo**: secciones con peso (%) e items, una activa por cargo.
 - **Control por RRHH**: parámetros generales (frecuencia y fechas por defecto) y **campañas de evaluación** — ciclos planificados con nombre, estado (borrador/activa/cerrada), fechas, alcance (todas las áreas o áreas específicas), regla de evaluador (jefe directo o asignación manual) y autoevaluación opcional.
-- **Generación masiva**: desde una campaña se crean en lote las evaluaciones del alcance (plantilla activa por cargo, evaluador según la regla), idempotente y con conteo de omitidas.
+- **Generación masiva**: el botón "Generar" de una campaña crea en lote las evaluaciones en **borrador** para los empleados del alcance: toma la **plantilla activa del cargo**, asigna el **evaluador según la regla** (jefe directo o RRHH) y deja los items sin puntaje para que el evaluador los califique. Es **idempotente** (no duplica; reporta creadas, ya existentes y omitidas por falta de plantilla). Solo Admin/RRH pueden generarla y las campañas **cerradas** no generan.
 - **Dashboard de campaña**: KPIs (totales, realizadas, pendientes, promedio), barra de avance, donut de estado, promedio por área y distribución por nivel.
 - **Trazabilidad**: cada cambio de configuración queda versionado (snapshot antes/después, usuario, comentario); la creación y aprobación de evaluaciones queda en la auditoría.
 - **Flujo**: borrador → completada → aprobada (bloqueada), puntaje 0–100 con nivel cualitativo y **PDF profesional** (logo de la empresa + Suite RH en el pie).

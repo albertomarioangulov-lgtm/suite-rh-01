@@ -316,7 +316,7 @@ export const modules: SuiteModule[] = [
       'Campañas con nombre, estado y fechas del ciclo.',
       'Alcance por área o todas las áreas.',
       'Evaluador: jefe directo o asignación manual.',
-      'Generación masiva de evaluaciones desde la campaña.',
+      'Generación en lote: plantilla por cargo, evaluador automático y sin duplicados.',
       'Dashboard de campaña: avance, promedio y distribución.',
       'Historial de configuración y auditoría.',
       'PDF profesional con logo de la empresa.',

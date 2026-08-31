@@ -902,6 +902,24 @@ export const helpSections: HelpSection[] = [
           'En el detalle de la campaña siga el avance: realizadas, pendientes, promedio y gráficos.',
         ],
       },
+      { type: 'title', text: '¿Qué hace "Generar evaluaciones"?' },
+      {
+        type: 'paragraph',
+        text: 'Crea en borrador las evaluaciones de todos los empleados del alcance: usa la plantilla activa del cargo, asigna el evaluador según la regla de la campaña (jefe directo o RRHH) y deja los items sin puntaje para que el evaluador los califique.',
+      },
+      {
+        type: 'steps',
+        items: [
+          'Solo Admin y RRHH pueden generar; las campañas cerradas no generan.',
+          'Es idempotente: si lo pulsas de nuevo no duplica, e informa cuántas creó, cuántas ya existían y cuántas se omitieron por no tener plantilla activa.',
+          'Las generadas aparecen como Pendientes; al completarse o aprobarse pasan a Realizadas en el dashboard de la campaña.',
+        ],
+      },
+      {
+        type: 'warning',
+        text: 'Si un cargo no tiene plantilla activa, el empleado se omite y se indica en el resultado de la generación. Crea primero la plantilla del cargo.',
+        tone: 'info',
+      },
       { type: 'title', text: 'Crear una plantilla por cargo' },
       {
         type: 'steps',
