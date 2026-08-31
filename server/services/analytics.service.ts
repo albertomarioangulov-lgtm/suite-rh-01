@@ -7,6 +7,8 @@ import { Attendance } from '~~/server/models/Attendance'
 import { Employee } from '~~/server/models/Employee'
 import { Payroll } from '~~/server/models/Payroll'
 import { EmploymentPeriod } from '~~/server/models/EmploymentPeriod'
+import { Shift } from '~~/server/models/Shift'
+import { Department } from '~~/server/models/Department'
 
 dayjs.extend(utc)
 
@@ -55,24 +57,36 @@ const getBusinessDays = (month: number, year: number) => {
   return count
 }
 
+type HeatmapState = 'present' | 'justified' | 'missing' | 'nonworking'
+
+interface IHeatmapEmployeeInfo {
+  firstName?: string
+  lastName?: string
+  hireDate?: Date | null
+  terminationDate?: Date | null
+  diaDescanso?: number | null
+  assignedShift?: unknown
+}
+
 /**
- * Construye la matriz del heatmap de asistencia: por empleado y día de la
- * semana (0=domingo … 6=sábado) en el mes consultado.
- * Estados: 'present' (verde), 'justified' (amarillo, ausencia aprobada) y
- * 'missing' (rojo, sin registro ni justificación en día hábil).
+ * Construye la matriz del heatmap de asistencia: por empleado y por día del
+ * mes consultado. Solo se evalúan los días en que el empleado debía laborar
+ * (según su turno asignado o, en su defecto, lunes a sábado menos su día de
+ * descanso) y a partir de su fecha de ingreso; el resto se marca como
+ * 'nonworking' (no laborable) para no penalizar días no trabajados.
  */
 const buildHeatmap = (
   attendanceRows: Array<{
     _id: unknown
     dates?: string[]
-    weekdays?: number[]
   }>,
   absenceRows: Array<{
     _id: unknown
     dates?: string[]
     endDates?: string[]
   }>,
-  employeeMap: Map<string, { firstName?: string; lastName?: string }>,
+  employeeMap: Map<string, IHeatmapEmployeeInfo>,
+  shiftWeekdaysMap: Map<string, Set<number>>,
   month: number,
   year: number,
 ) => {
@@ -121,31 +135,50 @@ const buildHeatmap = (
   return employeeIds.map((employeeId) => {
     const attendance = attendanceDatesByEmployee.get(employeeId) ?? new Set()
     const justified = absenceDatesByEmployee.get(employeeId) ?? new Set()
-    // Estado por día de la semana: cuántos días de cada tipo en el mes.
-    const weekdayCounts: Record<number, { present: number; justified: number; missing: number }> = {}
-    for (let weekday = 0; weekday <= 6; weekday += 1) {
-      weekdayCounts[weekday] = { present: 0, justified: 0, missing: 0 }
-    }
-
-    for (const date of datesInMonth) {
-      const weekday = dayjs.utc(date).day()
-      if (weekday === 0) continue // domingo: no se evalúa
-      if (justified.has(date)) {
-        weekdayCounts[weekday].justified += 1
-      } else if (attendance.has(date)) {
-        weekdayCounts[weekday].present += 1
-      } else {
-        weekdayCounts[weekday].missing += 1
-      }
-    }
-
     const employee = employeeMap.get(employeeId)
+
+    // Días laborables esperados: turno asignado, o lunes–sábado menos descanso.
+    const shiftId = employee?.assignedShift ? String(employee.assignedShift) : ''
+    let expected = shiftWeekdaysMap.get(shiftId)
+    if (!expected || expected.size === 0) {
+      expected = new Set([1, 2, 3, 4, 5, 6])
+      const restDay = employee?.diaDescanso ?? 0
+      if (restDay > 0) expected.delete(restDay)
+    }
+
+    const hireDate = employee?.hireDate
+      ? dayjs.utc(employee.hireDate).startOf('day')
+      : null
+    const terminationDate = employee?.terminationDate
+      ? dayjs.utc(employee.terminationDate).startOf('day')
+      : null
+
+    const days = datesInMonth.map((date) => {
+      const parsed = dayjs.utc(date)
+      const weekday = parsed.day()
+      let state: HeatmapState = 'nonworking'
+      if (weekday !== 0 && expected.has(weekday)) {
+        if (hireDate && parsed.isBefore(hireDate, 'day')) {
+          state = 'nonworking'
+        } else if (terminationDate && parsed.isAfter(terminationDate, 'day')) {
+          state = 'nonworking'
+        } else if (justified.has(date)) {
+          state = 'justified'
+        } else if (attendance.has(date)) {
+          state = 'present'
+        } else {
+          state = 'missing'
+        }
+      }
+      return { date, weekday, state }
+    })
+
     return {
       employeeId,
       name: employee
         ? `${employee.firstName ?? ''} ${employee.lastName ?? ''}`.trim()
         : 'Empleado',
-      weekdays: weekdayCounts,
+      days,
     }
   })
 }
@@ -184,6 +217,7 @@ export const getAnalyticsOverview = async (
     activeEmployees,
     contractBreakdown,
     positionBreakdown,
+    departmentBreakdown,
     previousMonthPayroll,
     monthPayroll,
     draftPayrolls,
@@ -207,6 +241,12 @@ export const getAnalyticsOverview = async (
     Employee.aggregate([
       { $match: { tenantId: objectId } },
       { $group: { _id: '$position', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+    ]),
+    Employee.aggregate([
+      { $match: { tenantId: objectId } },
+      { $group: { _id: '$department', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 8 },
     ]),
@@ -493,19 +533,47 @@ export const getAnalyticsOverview = async (
   ]
   const heatmapEmployees = heatmapEmployeeIds.length
     ? await Employee.find({ _id: { $in: heatmapEmployeeIds } })
-        .select('firstName lastName')
+        .select(
+          'firstName lastName hireDate terminationDate diaDescanso assignedShift',
+        )
         .lean()
     : []
   const heatmapEmployeeMap = new Map(
     heatmapEmployees.map((employee) => [String(employee._id), employee]),
   )
 
+  const shifts = await Shift.find({ tenantId: objectId }).select('days').lean()
+  const shiftWeekdaysMap = new Map<string, Set<number>>()
+  for (const shift of shifts) {
+    shiftWeekdaysMap.set(
+      String(shift._id),
+      new Set(
+        (shift.days ?? [])
+          .filter((day) => day.active)
+          .map((day) => day.dayOfWeek),
+      ),
+    )
+  }
+
   const heatmapRows = buildHeatmap(
     attendanceHeatmap,
     absenceHeatmap,
     heatmapEmployeeMap,
+    shiftWeekdaysMap,
     month,
     year,
+  )
+
+  const departmentIds = departmentBreakdown
+    .map((item) => item._id)
+    .filter(Boolean) as Types.ObjectId[]
+  const departments = departmentIds.length
+    ? await Department.find({ _id: { $in: departmentIds } })
+        .select('name')
+        .lean()
+    : []
+  const departmentNameMap = new Map(
+    departments.map((department) => [String(department._id), department.name]),
   )
 
   return {
@@ -522,6 +590,12 @@ export const getAnalyticsOverview = async (
       })),
       byPosition: positionBreakdown.map((item) => ({
         position: item._id ?? 'sin_cargo',
+        count: item.count,
+      })),
+      byDepartment: departmentBreakdown.map((item) => ({
+        department: item._id
+          ? (departmentNameMap.get(String(item._id)) ?? 'Sin área')
+          : 'Sin área',
         count: item.count,
       })),
     },

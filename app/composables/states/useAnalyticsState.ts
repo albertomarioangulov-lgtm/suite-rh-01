@@ -38,13 +38,22 @@ export interface IPayrollPerEmployee {
   totalToPay: number
 }
 
+export type AttendanceDayState =
+  | 'present'
+  | 'justified'
+  | 'missing'
+  | 'nonworking'
+
+export interface IHeatmapDay {
+  date: string
+  weekday: number
+  state: AttendanceDayState
+}
+
 export interface IHeatmapEmployee {
   employeeId: string
   name: string
-  weekdays: Record<
-    number,
-    { present: number; justified: number; missing: number }
-  >
+  days: IHeatmapDay[]
 }
 
 export interface IAnalyticsOverview {
@@ -57,6 +66,7 @@ export interface IAnalyticsOverview {
     rotationRate: number
     byContractType: IHeadcountBreakdown[]
     byPosition: IHeadcountBreakdown[]
+    byDepartment: IHeadcountBreakdown[]
   } | null
   payroll: {
     totalEarned: number

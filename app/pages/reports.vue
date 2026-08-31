@@ -106,7 +106,7 @@ const kpis = computed(() => {
       title: 'Horas del mes',
       value: `${totalHours.toFixed(1)}h`,
       suffix: `${attendance?.days ?? 0} registros de asistencia`,
-      icon: 'mdi-clock-in-outline',
+      icon: 'mdi-clock-in',
       color: 'info',
     },
     {
@@ -271,6 +271,28 @@ const byPositionOptions = computed(() => {
   }
 })
 
+const byDepartmentOptions = computed(() => {
+  const breakdown = overview.value?.headcount?.byDepartment ?? []
+  return {
+    tooltip: { trigger: 'axis' },
+    grid: { left: 32, right: 24, top: 24, bottom: 16 },
+    xAxis: {
+      type: 'category',
+      data: breakdown.map((item) => item.type),
+      axisLabel: { rotate: 20, width: 90, overflow: 'truncate' },
+    },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [
+      {
+        name: 'Colaboradores',
+        type: 'bar',
+        data: breakdown.map((item) => item.count),
+        itemStyle: { color: '#1867C0' },
+      },
+    ],
+  }
+})
+
 const dailyAttendanceOptions = computed(() => {
   const series = overview.value?.attendance?.dailySeries ?? []
   return {
@@ -312,58 +334,95 @@ const dailyAttendanceOptions = computed(() => {
   }
 })
 
-// ---- Heatmap de asistencia (empleados × día de la semana) ----
+// ---- Heatmap de asistencia (empleados × día del mes) ----
 
-const WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const HEATMAP_STATE_VALUE: Record<string, number> = {
+  missing: 0,
+  justified: 1,
+  present: 2,
+  nonworking: -1,
+}
+
+const HEATMAP_STATE_LABEL: Record<string, string> = {
+  missing: 'Sin registro',
+  justified: 'Justificada',
+  present: 'Presente',
+  nonworking: 'No laborable',
+}
+
+const HEATMAP_WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const HEATMAP_MONTH_LABELS = [
+  'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+  'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+]
 
 const attendanceHeatmapOptions = computed(() => {
   const employees = overview.value?.heatmap ?? []
+  const daysInMonth = dayjs(
+    new Date(period.value.year, period.value.month - 1, 1),
+  ).daysInMonth()
   const cells: Array<[number, number, number]> = []
   employees.forEach((employee, employeeIndex) => {
-    for (let weekday = 1; weekday <= 6; weekday += 1) {
-      const state = employee.weekdays[weekday]
-      const justified = state?.justified ?? 0
-      const missing = state?.missing ?? 0
-      const dominant = missing > 0 ? 0 : justified > 0 ? 0.5 : 1
-      cells.push([weekday, employeeIndex, dominant])
+    for (const day of employee.days) {
+      const dayOfMonth = dayjs(day.date).date()
+      cells.push([
+        dayOfMonth - 1,
+        employeeIndex,
+        HEATMAP_STATE_VALUE[day.state] ?? -1,
+      ])
     }
   })
   return {
     tooltip: {
       position: 'top',
-      formatter: (params: { value: [number, number, number]; dataIndex: number }) => {
-        const [weekday, employeeIndex] = params.value
+      formatter: (params: { value: [number, number, number] }) => {
+        const [dayIndex, employeeIndex] = params.value
         const employee = employees[employeeIndex]
-        const state = employee?.weekdays[weekday] ?? { present: 0, justified: 0, missing: 0 }
-        return `${employee?.name ?? ''} · ${WEEKDAY_LABELS[weekday]}<br/>Presente: ${state.present} · Justificada: ${state.justified} · Sin registro: ${state.missing}`
+        const day = employee?.days[dayIndex]
+        if (!day) return ''
+        const parsed = dayjs(day.date)
+        const date = `${HEATMAP_WEEKDAY_LABELS[parsed.day()]} ${parsed.date()} ${HEATMAP_MONTH_LABELS[parsed.month()]} ${parsed.year()}`
+        return `${employee.name} · ${date}<br/><b>${HEATMAP_STATE_LABEL[day.state] ?? '—'}</b>`
       },
     },
-    grid: { left: 90, right: 16, top: 16, bottom: 24 },
+    grid: { left: 180, right: 24, top: 44, bottom: 16 },
     xAxis: {
       type: 'category',
-      data: WEEKDAY_LABELS,
+      data: Array.from({ length: daysInMonth }, (_, index) => index + 1),
       splitArea: { show: true },
+      axisLabel: { interval: 4 },
     },
     yAxis: {
       type: 'category',
       data: employees.map((employee) => employee.name),
       splitArea: { show: true },
+      axisLabel: { width: 165, overflow: 'truncate' },
     },
     visualMap: {
-      min: 0,
-      max: 1,
-      calculable: false,
+      type: 'piecewise',
       orient: 'horizontal',
       left: 'center',
-      bottom: 0,
-      inRange: { color: ['#F44336', '#FB8C00', '#4CAF50'] },
+      top: 0,
+      itemWidth: 12,
+      itemHeight: 12,
+      textGap: 6,
+      itemGap: 6,
+      pieces: [
+        { min: 2, max: 2, label: 'Presente', color: '#4CAF50' },
+        { min: 1, max: 1, label: 'Justificada', color: '#FB8C00' },
+        { min: 0, max: 0, label: 'Sin registro', color: '#F44336' },
+        { min: -1, max: -1, label: 'No laborable', color: '#E2E8F0' },
+      ],
     },
     series: [
       {
         type: 'heatmap',
         data: cells,
         label: { show: false },
-        emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+        itemStyle: { borderColor: '#FFFFFF', borderWidth: 1 },
+        emphasis: {
+          itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
       },
     ],
   }
@@ -439,7 +498,9 @@ const structureTab = ref(0)
 const structureChartOptions = computed(() =>
   structureTab.value === 0
     ? (overview.value ? byContractOptions.value : emptyChartOption)
-    : (overview.value ? byPositionOptions.value : emptyChartOption),
+    : structureTab.value === 1
+      ? (overview.value ? byPositionOptions.value : emptyChartOption)
+      : (overview.value ? byDepartmentOptions.value : emptyChartOption),
 )
 
 const formatDelta = (delta: number | null | undefined) => {
@@ -725,26 +786,6 @@ const exportDashboard = () => {
           <v-card class="h-100">
             <v-card-item>
               <v-card-title class="text-subtitle-1 font-weight-bold">
-                Heatmap de asistencia
-              </v-card-title>
-              <v-card-subtitle class="text-caption">
-                Verde: presente · Naranja: justificada · Rojo: sin registro
-              </v-card-subtitle>
-            </v-card-item>
-            <v-divider />
-            <v-card-text>
-              <VChart
-                :option="overview ? attendanceHeatmapOptions : emptyChartOption"
-                autoresize
-                style="height: 320px; width: 100%"
-              />
-            </v-card-text>
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="6" lg="4">
-          <v-card class="h-100">
-            <v-card-item>
-              <v-card-title class="text-subtitle-1 font-weight-bold">
                 Top 5 ausencias
               </v-card-title>
             </v-card-item>
@@ -754,6 +795,26 @@ const exportDashboard = () => {
                 :option="overview ? topAbsencesOptions : emptyChartOption"
                 autoresize
                 style="height: 260px; width: 100%"
+              />
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" lg="8">
+          <v-card class="h-100">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">
+                Heatmap de asistencia
+              </v-card-title>
+              <v-card-subtitle class="text-caption">
+                Verde: presente · Ámbar: justificada · Rojo: sin registro · Gris: no laborable
+              </v-card-subtitle>
+            </v-card-item>
+            <v-divider />
+            <v-card-text>
+              <VChart
+                :option="overview ? attendanceHeatmapOptions : emptyChartOption"
+                autoresize
+                style="height: 300px; width: 100%"
               />
             </v-card-text>
           </v-card>
@@ -835,6 +896,7 @@ const exportDashboard = () => {
               <v-tabs v-model="structureTab" density="compact">
                 <v-tab :value="0">Por contrato</v-tab>
                 <v-tab :value="1">Por cargo</v-tab>
+                <v-tab :value="2">Por área</v-tab>
               </v-tabs>
               <VChart
                 :option="structureChartOptions"
