@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { getHelpSection } from '~/data/help-sections'
+import {
+  getHelpSection,
+  isHelpSectionVisible,
+} from '~/data/help-sections'
 
 definePageMeta({
   layout: 'default',
@@ -7,11 +10,22 @@ definePageMeta({
 })
 
 const route = useRoute()
+const { user } = useAuthState()
+const { enabledFlags, fetchFlags, isEnabled } = useFeatureFlagsState()
+
+onMounted(() => {
+  if (enabledFlags.value.length === 0) fetchFlags()
+})
+
+const role = computed(() => user.value?.role)
 
 // Soporta ?seccion= (nuevo formato) y ?topic= (formato anterior).
 const activeSectionId = computed(() => {
   const fromSeccion = String(route.query.seccion || '')
-  if (getHelpSection(fromSeccion)) return fromSeccion
+  const section = getHelpSection(fromSeccion)
+  if (section && isHelpSectionVisible(section, role.value, isEnabled)) {
+    return fromSeccion
+  }
   const legacyTopics: Record<string, string> = {
     usuarios: 'usuarios',
     home: 'inicio',

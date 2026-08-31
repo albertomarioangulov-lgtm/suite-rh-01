@@ -2,6 +2,7 @@
 import {
   helpSections,
   categoryLabel,
+  isHelpSectionVisible,
   type HelpAudience,
   type HelpCategory,
 } from '~/data/help-sections'
@@ -13,6 +14,15 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'select', id: string): void
 }>()
+
+const { user } = useAuthState()
+const { enabledFlags, fetchFlags, isEnabled } = useFeatureFlagsState()
+
+const role = computed(() => user.value?.role)
+
+onMounted(() => {
+  if (enabledFlags.value.length === 0) fetchFlags()
+})
 
 const search = ref('')
 const audience = ref<HelpAudience | 'todos'>('todos')
@@ -43,6 +53,7 @@ const matchesQuery = (q: string, section: (typeof helpSections)[number]): boolea
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   return helpSections.filter((section) => {
+    if (!isHelpSectionVisible(section, role.value, isEnabled)) return false
     const matchesAudience =
       audience.value === 'todos' ||
       section.audience === 'todos' ||
@@ -50,6 +61,11 @@ const filtered = computed(() => {
     return matchesAudience && (!q || matchesQuery(q, section))
   })
 })
+
+// Para un empleado no tiene sentido filtrar por "Gestión".
+const canUseAudienceFilter = computed(() =>
+  ['admin', 'manager', 'hr'].includes(role.value ?? ''),
+)
 
 const categoryOrder: HelpCategory[] = ['modulos', 'procesos', 'roles', 'referencia']
 
@@ -81,7 +97,12 @@ const onSelect = (id: string | null) => {
       class="mb-3"
     />
 
-    <v-chip-group v-model="audience" mandatory class="mb-3">
+    <v-chip-group
+      v-if="canUseAudienceFilter"
+      v-model="audience"
+      mandatory
+      class="mb-3"
+    >
       <v-chip
         v-for="option in audienceOptions"
         :key="option.value"

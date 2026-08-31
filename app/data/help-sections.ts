@@ -4,6 +4,8 @@
 // FAQ por sección y secciones relacionadas.
 // ============================================================
 
+import type { FeatureFlag } from '~~/shared/feature-flags'
+
 export type HelpAudience = 'todos' | 'gestion' | 'empleado'
 export type HelpCategory = 'modulos' | 'procesos' | 'roles' | 'referencia'
 
@@ -26,6 +28,8 @@ export interface HelpSection {
   title: string
   icon: string
   audience: HelpAudience
+  /** Módulo requerido: si el tenant no tiene el flag, la sección se oculta. */
+  flag?: FeatureFlag
   category: HelpCategory
   summary: string
   blocks: HelpBlock[]
@@ -48,6 +52,29 @@ export const CATEGORY_LABELS: Record<HelpCategory, string> = {
 
 export const audienceLabel = (audience: HelpAudience): string =>
   AUDIENCE_LABELS[audience] || audience
+
+/**
+ * Un usuario solo ve las secciones de ayuda de su alcance:
+ * - 'todos' → cualquier rol.
+ * - 'gestion' → admin, manager, hr.
+ * - 'empleado' → rol empleado.
+ * Además, si la sección exige un módulo (flag) y el tenant no lo tiene
+ * habilitado, se oculta (ej. sin nómina no se muestra cómo liquidar nómina).
+ */
+export const isHelpSectionVisible = (
+  section: Pick<HelpSection, 'audience' | 'flag'>,
+  role?: string,
+  isEnabled?: (flag: FeatureFlag) => boolean,
+): boolean => {
+  const roleOk =
+    section.audience === 'todos' ||
+    (section.audience === 'gestion' &&
+      ['admin', 'manager', 'hr'].includes(role ?? '')) ||
+    (section.audience === 'empleado' && role === 'employee')
+  if (!roleOk) return false
+  if (section.flag && isEnabled && !isEnabled(section.flag)) return false
+  return true
+}
 
 export const categoryLabel = (category: HelpCategory): string =>
   CATEGORY_LABELS[category] || category
@@ -146,6 +173,7 @@ export const helpSections: HelpSection[] = [
     title: 'Empleados',
     icon: 'mdi-account-group-outline',
     audience: 'gestion',
+    flag: 'employees',
     category: 'modulos',
     summary: 'Fichas de empleados: contrato, salario, asistencia y ausencias.',
     blocks: [
@@ -200,6 +228,7 @@ export const helpSections: HelpSection[] = [
     title: 'Asistencia',
     icon: 'mdi-clock-in',
     audience: 'gestion',
+    flag: 'attendance',
     category: 'modulos',
     summary: 'Registro de entradas y salidas, horas y extras.',
     blocks: [
@@ -263,6 +292,7 @@ export const helpSections: HelpSection[] = [
     title: 'Turnos y horarios',
     icon: 'mdi-calendar-clock-outline',
     audience: 'gestion',
+    flag: 'shifts',
     category: 'modulos',
     summary: 'Turnos fijos o rotativos, asignación y calendario.',
     blocks: [
@@ -313,6 +343,7 @@ export const helpSections: HelpSection[] = [
     title: 'Ausencias y permisos',
     icon: 'mdi-calendar-edit-outline',
     audience: 'gestion',
+    flag: 'absences',
     category: 'modulos',
     summary: 'Licencias, incapacidades, descansos compensatorios y su efecto en la nómina.',
     blocks: [
@@ -389,6 +420,7 @@ export const helpSections: HelpSection[] = [
     title: 'Nómina',
     icon: 'mdi-cash-multiple',
     audience: 'gestion',
+    flag: 'payroll',
     category: 'modulos',
     summary: 'Liquidación de períodos, devengados, deducciones y aprobación.',
     blocks: [
@@ -750,6 +782,7 @@ export const helpSections: HelpSection[] = [
     title: 'Reportes',
     icon: 'mdi-chart-bar',
     audience: 'gestion',
+    flag: 'analytics',
     category: 'modulos',
     summary: 'Dashboard con indicadores de headcount, nómina, ausentismo y asistencia.',
     blocks: [
@@ -810,6 +843,56 @@ export const helpSections: HelpSection[] = [
       },
     ],
     related: ['inicio', 'soporte'],
+  },
+  {
+    id: 'portal',
+    title: 'Mi portal (autoservicio)',
+    icon: 'mdi-account-card-outline',
+    audience: 'empleado',
+    flag: 'self_service',
+    category: 'modulos',
+    summary: 'Tus recibos de nómina y la solicitud de permisos desde tu cuenta.',
+    blocks: [
+      {
+        type: 'paragraph',
+        text: 'Mi portal es tu espacio de autoservicio: consultas tus recibos de nómina y solicitas permisos y ausencias sin pasar por RRHH.',
+      },
+      { type: 'title', text: 'Ver mis recibos de nómina' },
+      {
+        type: 'steps',
+        items: [
+          'Entre a Mi portal desde el menú lateral.',
+          'Abra la pestaña Recibos de nómina.',
+          'Use "Ver recibo" para consultar el desglose: devengado, deducciones y seguridad social.',
+        ],
+      },
+      { type: 'title', text: 'Solicitar un permiso' },
+      {
+        type: 'steps',
+        items: [
+          'En Mi portal abra la pestaña Mis permisos.',
+          'Pulse "Solicitar permiso", elija el tipo y las fechas.',
+          'Agregue observaciones si aplica y envíe la solicitud.',
+          'La solicitud queda pendiente y se notifica a RRHH/gerencia para su aprobación.',
+        ],
+      },
+      {
+        type: 'warning',
+        tone: 'info',
+        text: 'Un permiso pendiente aún no afecta tu nómina: solo se tiene en cuenta cuando RRHH/gerencia lo aprueba.',
+      },
+    ],
+    faqs: [
+      {
+        q: '¿Por qué no veo Mi portal?',
+        a: 'El portal aparece cuando tu cuenta tiene una ficha de empleado vinculada. Si no la ves, contacta al administrador.',
+      },
+      {
+        q: '¿Puedo cancelar una solicitud pendiente?',
+        a: 'Por ahora la cancelación la realiza RRHH. Solicítala por cualquier canal interno.',
+      },
+    ],
+    related: ['perfil', 'soporte'],
   },
   {
     id: 'soporte',
@@ -874,6 +957,7 @@ export const helpSections: HelpSection[] = [
     title: 'Calendario de ausencias',
     icon: 'mdi-calendar-month-outline',
     audience: 'gestion',
+    flag: 'absences',
     category: 'modulos',
     summary: 'Vista mensual de permisos, licencias e incapacidades.',
     blocks: [
@@ -898,6 +982,7 @@ export const helpSections: HelpSection[] = [
     title: 'Evaluaciones de desempeño',
     icon: 'mdi-clipboard-check-outline',
     audience: 'gestion',
+    flag: 'performance',
     category: 'modulos',
     summary: 'Plantillas configurables por cargo, ciclo controlado por RRHH, puntaje y PDF.',
     blocks: [
@@ -997,6 +1082,7 @@ export const helpSections: HelpSection[] = [
     title: 'Organización (áreas y cargos)',
     icon: 'mdi-sitemap-outline',
     audience: 'gestion',
+    flag: 'employees',
     category: 'modulos',
     summary: 'Áreas, cargos con funciones, jefes directos y organigrama.',
     blocks: [

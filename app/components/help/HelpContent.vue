@@ -4,6 +4,7 @@ import {
   getHelpSection,
   audienceLabel,
   categoryLabel,
+  isHelpSectionVisible,
   type HelpCategory,
 } from '~/data/help-sections'
 
@@ -18,7 +19,22 @@ const emit = defineEmits<{
 
 const { closeHelp } = useHelp()
 
-const section = computed(() => getHelpSection(props.sectionId))
+const { user } = useAuthState()
+const { enabledFlags, fetchFlags, isEnabled } = useFeatureFlagsState()
+
+const role = computed(() => user.value?.role)
+
+onMounted(() => {
+  if (enabledFlags.value.length === 0) fetchFlags()
+})
+
+const visibleSection = (id: string | null) => {
+  const found = getHelpSection(id)
+  if (!found) return undefined
+  return isHelpSectionVisible(found, role.value, isEnabled) ? found : undefined
+}
+
+const section = computed(() => visibleSection(props.sectionId))
 
 const openFullPage = (id: string) => {
   closeHelp()
@@ -28,7 +44,7 @@ const openFullPage = (id: string) => {
 const relatedSections = computed(() => {
   const ids = section.value?.related ?? []
   return ids
-    .map((id) => getHelpSection(id))
+    .map((id) => visibleSection(id))
     .filter((item): item is NonNullable<typeof item> => !!item)
 })
 
@@ -39,7 +55,11 @@ const groupedHome = computed(() =>
     .map((category) => ({
       category,
       label: categoryLabel(category),
-      sections: helpSections.filter((item) => item.category === category),
+      sections: helpSections.filter(
+        (item) =>
+          item.category === category &&
+          isHelpSectionVisible(item, role.value, isEnabled),
+      ),
     }))
     .filter((group) => group.sections.length > 0),
 )
