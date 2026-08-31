@@ -53,7 +53,7 @@ const load = async () => {
     const data = await authFetch<{ items: Array<Record<string, any>> }>(
       API_PATHS.evaluations.list,
       {
-        query: { periodLabel: campaign.value.name, limit: 200 },
+        query: { periodLabel: campaign.value.name, limit: 100 },
       },
     )
     evaluations.value = data.items
