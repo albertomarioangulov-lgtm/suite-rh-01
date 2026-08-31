@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useThemeToggle } from '~/composables/useTheme'
-import { ROLE_LABELS } from '~~/shared/auth'
+import { ROLES, ROLE_LABELS } from '~~/shared/auth'
 
 const { user, logout } = useAuthState()
 const { themes, currentThemeId, setTheme } = useThemeToggle()
@@ -11,10 +11,27 @@ const densityOpen = ref(false)
 const displayName = computed(() => user.value?.name || user.value?.email || 'Usuario')
 const roleLabel = computed(() => (user.value ? ROLE_LABELS[user.value.role] : ''))
 
-const menuItems = [
-  { title: 'Perfil', icon: 'mdi-account-circle-outline', to: '/profile' },
-  { title: 'Configuración', icon: 'mdi-office-building-outline', to: '/admin/configuration' },
-]
+const menuItems = computed(() => {
+  const items: Array<{ title: string; icon: string; to: string }> = [
+    { title: 'Perfil', icon: 'mdi-account-circle-outline', to: '/profile' },
+  ]
+  const role = user.value?.role
+  if (role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role)) {
+    items.push({
+      title: 'Configuración',
+      icon: 'mdi-office-building-outline',
+      to: '/admin/configuration',
+    })
+  }
+  if (role === ROLES.EMPLOYEE || user.value?.employeeId) {
+    items.push({
+      title: 'Mi portal',
+      icon: 'mdi-account-card-outline',
+      to: '/portal',
+    })
+  }
+  return items
+})
 
 const handleLogout = async () => {
   await logout()

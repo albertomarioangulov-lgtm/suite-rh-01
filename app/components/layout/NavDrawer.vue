@@ -37,9 +37,27 @@ const canViewAttendance = computed(
       user.value.role,
     ),
 )
+const canViewEmployees = computed(
+  () =>
+    !!user.value &&
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+      user.value.role,
+    ),
+)
+const canViewReports = canViewEmployees
 
 const navItems = computed(() => [
   { title: 'Inicio', icon: 'mdi-home-outline', to: '/home' },
+  ...((user.value?.role === ROLES.EMPLOYEE || user.value?.employeeId) &&
+  isEnabled('self_service')
+    ? [
+        {
+          title: 'Mi portal',
+          icon: 'mdi-account-card-outline',
+          to: '/portal',
+        },
+      ]
+    : []),
   ...(canViewUsers.value
     ? [
         {
@@ -121,7 +139,7 @@ const navItems = computed(() => [
         },
       ]
     : []),
-  ...(isEnabled('employees')
+  ...(canViewEmployees.value && isEnabled('employees')
     ? [
         {
           title: 'Empleados',
@@ -139,7 +157,7 @@ const navItems = computed(() => [
         },
       ]
     : []),
-  ...(isEnabled('analytics')
+  ...(canViewReports.value && isEnabled('analytics')
     ? [{ title: 'Reportes', icon: 'mdi-chart-bar', to: '/reports' }]
     : []),
   { title: 'Ayuda', icon: 'mdi-help-circle-outline', to: '/help' },

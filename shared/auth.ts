@@ -24,6 +24,8 @@ export interface IUser {
   name: string
   role: UserRole
   active: boolean
+  /** Ficha de empleado vinculada (si existe): habilita el portal de autoservicio. */
+  employeeId?: string | null
   createdAt?: string
   updatedAt?: string
   emailStatus?: string

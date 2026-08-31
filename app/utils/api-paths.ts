@@ -46,6 +46,11 @@ export const API_PATHS = {
     weekly: (employeeId: string) => `${API_BASE}/attendance/weekly/${employeeId}`,
     monthly: (employeeId: string) => `${API_BASE}/attendance/monthly/${employeeId}`,
   },
+  self: {
+    me: `${API_BASE}/self/me`,
+    payroll: `${API_BASE}/self/payroll`,
+    absences: `${API_BASE}/self/absences`,
+  },
   shifts: {
     list: `${API_BASE}/shifts`,
     detail: (id: string) => `${API_BASE}/shifts/${id}`,
