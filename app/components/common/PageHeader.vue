@@ -13,7 +13,7 @@ withDefaults(
   <div class="mt-0 mb-3">
     <div class="d-flex flex-wrap align-center ga-3">
       <h1 class="text-h6 font-weight-bold mt-0 mb-0 mr-auto">
-        {{ title }}
+        <slot name="title">{{ title }}</slot>
       </h1>
       <ClientOnly v-if="helpTopic">
         <v-tooltip location="bottom" text="Ayuda sobre esta página">
