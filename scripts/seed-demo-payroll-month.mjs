@@ -60,6 +60,7 @@ const shifts = db.collection('shifts')
 const attendances = db.collection('attendances')
 const absences = db.collection('absences')
 const payrolls = db.collection('payrolls')
+const tenantConfigs = db.collection('tenantconfigs')
 
 const company = await companies.findOne({ active: true })
 if (!company) {
@@ -79,6 +80,13 @@ if (!legal) {
 
 const admin = await users.findOne({ role: ROLES.ADMIN, active: true })
 const now = new Date()
+
+// Activa el portal de autoservicio (Mi Portal) en la configuración del tenant.
+await tenantConfigs.updateOne(
+  { tenantId: company._id },
+  { $addToSet: { enabledFlags: 'self_service' } },
+  { upsert: true },
+)
 
 // Fechas de los 4 meses (más antiguo → más reciente; el último va en borrador).
 const months = []

@@ -77,4 +77,5 @@ export const getDefaultFlags = (): FeatureFlag[] => [
   FEATURE_FLAGS.LOANS,
   FEATURE_FLAGS.ANALYTICS,
   FEATURE_FLAGS.PERFORMANCE,
+  FEATURE_FLAGS.SELF_SERVICE,
 ]
