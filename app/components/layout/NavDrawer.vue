@@ -112,6 +112,15 @@ const navItems = computed(() => [
         },
       ]
     : []),
+  ...(canViewConfig.value && isEnabled('performance')
+    ? [
+        {
+          title: 'Evaluaciones',
+          icon: 'mdi-clipboard-check-outline',
+          to: '/admin/evaluations',
+        },
+      ]
+    : []),
   ...(isEnabled('employees')
     ? [
         {

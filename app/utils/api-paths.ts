@@ -85,4 +85,21 @@ export const API_PATHS = {
     positions: `${API_BASE}/positions`,
     position: (id: string) => `${API_BASE}/positions/${id}`,
   },
+  evaluations: {
+    list: `${API_BASE}/evaluations`,
+    detail: (id: string) => `${API_BASE}/evaluations/${id}`,
+    approve: (id: string) => `${API_BASE}/evaluations/${id}/approve`,
+    templates: `${API_BASE}/evaluation-templates`,
+    template: (id: string) => `${API_BASE}/evaluation-templates/${id}`,
+    templateByPosition: (positionId: string) =>
+      `${API_BASE}/evaluation-templates/by-position/${positionId}`,
+    config: `${API_BASE}/evaluation-config`,
+    configHistory: `${API_BASE}/evaluation-config/history`,
+    campaigns: `${API_BASE}/evaluation-campaigns`,
+    campaign: (id: string) => `${API_BASE}/evaluation-campaigns/${id}`,
+    campaignGenerate: (id: string) =>
+      `${API_BASE}/evaluation-campaigns/${id}/generate`,
+    campaignHistory: (id: string) =>
+      `${API_BASE}/evaluation-campaigns/${id}/history`,
+  },
 } as const

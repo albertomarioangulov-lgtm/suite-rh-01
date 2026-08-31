@@ -65,7 +65,6 @@ export const DEFAULT_FLAGS_BY_ROLE: Record<UserRole, FeatureFlag[]> = {
  * preparar el licenciamiento, pero no hay rutas que proteger todavía.
  */
 export const UNBUILT_MODULES: FeatureFlag[] = [
-  FEATURE_FLAGS.PERFORMANCE,
   FEATURE_FLAGS.RECRUITMENT,
 ]
 
@@ -77,4 +76,5 @@ export const getDefaultFlags = (): FeatureFlag[] => [
   FEATURE_FLAGS.PAYROLL,
   FEATURE_FLAGS.LOANS,
   FEATURE_FLAGS.ANALYTICS,
+  FEATURE_FLAGS.PERFORMANCE,
 ]
