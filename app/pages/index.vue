@@ -363,7 +363,34 @@ const roles = [
             v-for="shot in [
               { src: '/screenshots/empleados.webp', label: 'Gestión de empleados' },
               { src: '/screenshots/nomina.webp', label: 'Liquidación de nómina' },
+              { src: '/screenshots/asistencias.webp', label: 'Asistencia y horas extra' },
               { src: '/screenshots/ausencias.webp', label: 'Ausencias y permisos' },
+            ]"
+            :key="shot.src"
+            cols="12"
+            sm="6"
+            lg="3"
+          >
+            <div class="shot-frame">
+              <img :src="shot.src" :alt="shot.label" loading="lazy" />
+              <div class="shot-label">{{ shot.label }}</div>
+            </div>
+          </v-col>
+        </v-row>
+
+        <div class="text-center mx-auto mb-8" style="max-width: 720px">
+          <h3 class="text-h5 font-weight-bold mb-2">Detalle de nómina</h3>
+          <p class="text-body-1 text-medium-emphasis mb-0">
+            Cada período con resumen financiero, liquidación por empleado e historial de cambios.
+          </p>
+        </div>
+
+        <v-row>
+          <v-col
+            v-for="shot in [
+              { src: '/screenshots/nomina-detalle.webp', label: 'Resumen de la nómina' },
+              { src: '/screenshots/nomina-detalle-2.webp', label: 'Liquidación por empleado' },
+              { src: '/screenshots/nomina-detalle-3.webp', label: 'Historial y desglose' },
             ]"
             :key="shot.src"
             cols="12"

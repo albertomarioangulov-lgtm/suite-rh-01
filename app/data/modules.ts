@@ -85,6 +85,7 @@ export const modules: SuiteModule[] = [
     slug: 'asistencia',
     title: 'Asistencia y horas extras',
     icon: 'mdi-clock-in',
+    screenshot: '/screenshots/asistencias.webp',
     tagline: 'Registros de entrada y salida con recargos legales automáticos.',
     summary:
       'Controla la asistencia diaria y calcula horas extras diurnas y nocturnas con los recargos de la ley.',
@@ -185,7 +186,7 @@ export const modules: SuiteModule[] = [
         text: 'Aportes parafiscales (SENA, ICBF, caja de compensación) según el tamaño de la empresa.',
       },
     ],
-    screenshot: '/screenshots/nomina.webp',
+    screenshot: '/screenshots/nomina-detalle.webp',
     color: '#1867C0',
   },
   {
