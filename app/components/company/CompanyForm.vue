@@ -16,6 +16,7 @@ const emit = defineEmits<{
 const formState = reactive({
   name: props.company?.name ?? '',
   nit: props.company?.nit ?? '',
+  logo: props.company?.logo ?? '',
   address: props.company?.address ?? '',
   taxRegime: props.company?.taxRegime ?? 'simplified',
   maxWeeklyHours: props.company?.workSchedule.maxWeeklyHours ?? 42,
@@ -35,6 +36,15 @@ const formState = reactive({
   matrimonioDays: props.company?.absencePolicies?.maxDaysPerYear?.Matrimonio ?? 5,
   sinRemunerarDays: props.company?.absencePolicies?.maxDaysPerYear?.Sin_Remunerar ?? 30,
 })
+
+const onLogoFile = (file: File | null) => {
+  if (!file) return
+  const reader = new FileReader()
+  reader.onloadend = () => {
+    formState.logo = String(reader.result ?? '')
+  }
+  reader.readAsDataURL(file)
+}
 
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
 const saving = ref(false)
@@ -68,6 +78,7 @@ const save = async () => {
     emit('saved', {
       name: formState.name.trim(),
       nit: formState.nit.trim(),
+      logo: formState.logo,
       address: formState.address.trim(),
       taxRegime: formState.taxRegime,
       workSchedule: {
@@ -120,6 +131,34 @@ const save = async () => {
       </v-col>
       <v-col cols="12" md="6">
         <v-text-field v-model="formState.nit" label="NIT" :rules="rules.nit" class="mb-3" />
+      </v-col>
+      <v-col cols="12">
+        <div class="d-flex align-center ga-3 mb-3">
+          <img
+            v-if="formState.logo"
+            :src="formState.logo"
+            alt="Logo"
+            height="40"
+            class="rounded"
+            style="border: 1px solid rgba(15,23,42,0.1)"
+          />
+          <v-file-input
+            label="Logo de la empresa"
+            accept="image/*"
+            density="comfortable"
+            hide-details
+            class="flex-grow-1"
+            @change="onLogoFile($event?.target?.files?.[0] ?? null)"
+          />
+          <v-btn
+            v-if="formState.logo"
+            icon="mdi-close"
+            size="small"
+            variant="text"
+            title="Quitar logo"
+            @click="formState.logo = ''"
+          />
+        </div>
       </v-col>
       <v-col cols="12" md="8">
         <v-text-field

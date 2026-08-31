@@ -35,6 +35,7 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
     company = await Company.create({
       name: data.name || '',
       nit: data.nit || '',
+      logo: data.logo || '',
       address: data.address || '',
       taxRegime: data.taxRegime || 'simplified',
       workSchedule: {
@@ -57,6 +58,10 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
   if (data.nit !== undefined) {
     changes.nit = { before: company.nit, after: data.nit }
     company.nit = data.nit
+  }
+  if (data.logo !== undefined) {
+    changes.logo = { before: company.logo, after: data.logo }
+    company.logo = data.logo
   }
   if (data.address !== undefined) {
     changes.address = { before: company.address, after: data.address }

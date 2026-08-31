@@ -92,6 +92,7 @@ const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida
 export const companyUpdateSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es requerido').optional(),
   nit: z.string().trim().min(5, 'NIT inválido').optional(),
+  logo: z.string().max(600000, 'La imagen del logo es demasiado grande').optional(),
   address: z.string().trim().min(1, 'La dirección es requerida').optional(),
   taxRegime: z.enum(['simplified', 'common']).optional(),
   workSchedule: z

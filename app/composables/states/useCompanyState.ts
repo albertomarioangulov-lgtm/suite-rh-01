@@ -4,6 +4,7 @@ export interface ICompanyView {
   _id: string
   name: string
   nit: string
+  logo?: string
   address: string
   taxRegime: 'simplified' | 'common'
   workSchedule: {

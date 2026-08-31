@@ -7,6 +7,8 @@ const CompanySchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     nit: { type: String, required: true, trim: true },
+    /** Logo de la empresa (URL o data URL) para documentos PDF. */
+    logo: { type: String, default: '' },
     address: { type: String, required: true, trim: true },
     taxRegime: {
       type: String,
