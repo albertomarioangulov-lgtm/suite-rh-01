@@ -10,6 +10,7 @@ export interface IDashboardAlert {
   type: string
   message: string
   read: boolean
+  count?: number
   createdAt?: string
 }
 
@@ -35,6 +36,7 @@ const fetchAlerts = async () => {
 
 const alertTarget = (alert: IDashboardAlert) => {
   if (alert.module === 'payroll') return '/admin/payroll'
+  if (alert.module === 'evaluation') return '/admin/evaluations'
   const employee =
     typeof alert.employee === 'object' && alert.employee
       ? alert.employee._id
@@ -138,6 +140,15 @@ onUnmounted(() => {
         class="rounded-lg mb-1"
       >
         <template #append>
+          <v-chip
+            v-if="(alert.count ?? 1) > 1"
+            size="x-small"
+            color="primary"
+            variant="tonal"
+            class="mr-1"
+          >
+            {{ alert.count }}
+          </v-chip>
           <v-icon size="small" class="text-medium-emphasis">
             mdi-chevron-right
           </v-icon>

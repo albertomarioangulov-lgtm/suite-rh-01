@@ -10,10 +10,17 @@ const { Schema, model, models } = mongoose
 const AlertSchema = new Schema(
   {
     employee: { type: Schema.Types.ObjectId, ref: 'Employee' },
+    /** Destino personal: si se define, solo este usuario ve la alerta. */
+    user: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    /**
+     * Clave estable de deduplicación (ej. `evaluation_pending:{userId}:{campaignId}`).
+     * Permite consolidar avisos del mismo tipo hacia el mismo usuario.
+     */
+    dedupeKey: { type: String, default: '' },
     tenantId: { type: Schema.Types.ObjectId, ref: 'Company' },
     module: {
       type: String,
-      enum: ['attendance', 'shift', 'payroll', 'absence'],
+      enum: ['attendance', 'shift', 'payroll', 'absence', 'evaluation'],
       default: 'attendance',
     },
     type: {
@@ -30,11 +37,14 @@ const AlertSchema = new Schema(
     alertKey: { type: String, default: 'general' },
     /** Roles destino: solo estos roles pueden ver la alerta. */
     targetRoles: { type: [String], default: [] },
+    /** Cantidad de ítems representados (ej. evaluaciones pendientes). */
+    count: { type: Number, default: 1, min: 1 },
   },
   { timestamps: true, versionKey: false },
 )
 
 AlertSchema.index({ employee: 1, read: 1 })
+AlertSchema.index({ user: 1, dedupeKey: 1, read: 1 })
 
 export type IAlert = InferSchemaType<typeof AlertSchema>
 

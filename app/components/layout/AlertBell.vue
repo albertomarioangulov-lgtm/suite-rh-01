@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { API_BASE } from '~/utils/api-paths'
 import { formatDate } from '~~/shared/utils/datetime-helpers'
+import { ROLES } from '~~/shared/auth'
 
 export interface IBellAlert {
   _id: string
@@ -11,10 +12,11 @@ export interface IBellAlert {
   type: string
   message: string
   read: boolean
+  count?: number
   createdAt?: string
 }
 
-const { authFetch } = useAuthState()
+const { authFetch, user } = useAuthState()
 const snackbar = useSnackbarState()
 
 const alerts = useState<IBellAlert[]>('bell-alerts', () => [])
@@ -81,14 +83,19 @@ const employeeName = (alert: IBellAlert) => {
   return ''
 }
 
-const alertTarget = (alert: IBellAlert) =>
-  alert.module === 'payroll'
-    ? '/admin/payroll'
-    : alert.module === 'absence' && employeeName(alert)
-      ? `/admin/employees/${String(
-          (alert.employee as { _id: string })._id,
-        )}`
-      : '/admin/attendance'
+const alertTarget = (alert: IBellAlert) => {
+  if (alert.module === 'payroll') return '/admin/payroll'
+  if (alert.module === 'evaluation') {
+    const role = user.value?.role
+    return role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role)
+      ? '/admin/evaluations'
+      : ''
+  }
+  if (alert.module === 'absence' && employeeName(alert)) {
+    return `/admin/employees/${String((alert.employee as { _id: string })._id)}`
+  }
+  return '/admin/attendance'
+}
 
 const alertIcon = (type: string) =>
   type === 'overtime_limit'
@@ -106,7 +113,8 @@ const markRead = async (alert: IBellAlert) => {
     alert.read = true
     window.dispatchEvent(new CustomEvent('alerts:refresh'))
     open.value = false
-    navigateTo(alertTarget(alert))
+    const target = alertTarget(alert)
+    if (target) navigateTo(target)
   } catch {
     snackbar.error('No se pudo marcar la alerta como leída')
   } finally {
@@ -160,6 +168,15 @@ const markRead = async (alert: IBellAlert) => {
           @click="markRead(alert)"
         >
           <template #append>
+            <v-chip
+              v-if="(alert.count ?? 1) > 1"
+              size="x-small"
+              color="primary"
+              variant="tonal"
+              class="mr-1"
+            >
+              {{ alert.count }}
+            </v-chip>
             <v-icon size="small" class="text-medium-emphasis">
               mdi-chevron-right
             </v-icon>

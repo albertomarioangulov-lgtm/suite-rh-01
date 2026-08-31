@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
             type: alert.type,
             message: alert.message,
             read: alert.read,
+            count: alert.count ?? 1,
             createdAt: alert.createdAt,
           },
         })
