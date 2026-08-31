@@ -192,6 +192,8 @@ export const employeeCreateSchema = employeeAccountSchema.extend({
   baseSalary: z.number().positive('El salario base debe ser mayor a 0'),
   arlRiskClass: z.number().int().min(1).max(5).default(1),
   position: z.string().trim().min(1, 'El cargo es requerido'),
+  department: mongoIdSchema.nullable().optional(),
+  manager: mongoIdSchema.nullable().optional(),
   assignedShift: mongoIdSchema.optional(),
   active: z.boolean().default(true),
 })
@@ -210,6 +212,8 @@ export const employeeUpdateSchema = z.object({
   baseSalary: z.number().positive('El salario base debe ser mayor a 0').optional(),
   arlRiskClass: z.number().int().min(1).max(5).optional(),
   position: z.string().trim().min(1, 'El cargo es requerido').optional(),
+  department: mongoIdSchema.nullable().optional(),
+  manager: mongoIdSchema.nullable().optional(),
   assignedShift: mongoIdSchema.optional(),
   active: z.boolean().optional(),
 })

@@ -127,6 +127,8 @@ export default defineEventHandler(async (event) => {
     contractType: data.contractType,
     baseSalary: data.baseSalary,
     position: data.position,
+    department: data.department ?? null,
+    manager: data.manager ?? null,
     assignedShift: data.assignedShift,
     active: data.active,
     createdBy: actorId,

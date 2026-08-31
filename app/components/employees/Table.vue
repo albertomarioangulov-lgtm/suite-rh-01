@@ -23,6 +23,7 @@ const headers = [
   { title: 'Nombre', key: 'name' },
   { title: 'Email', key: 'email' },
   { title: 'Cargo', key: 'position' },
+  { title: 'Área', key: 'department' },
   { title: 'Contrato', key: 'contractType' },
   { title: 'Salario', key: 'baseSalary' },
   { title: 'Estado', key: 'active' },
@@ -31,6 +32,11 @@ const headers = [
 
 const contractLabel = (value: string) =>
   CONTRACT_TYPE_LABELS[value] ?? value
+
+const departmentName = (employee: IEmployeeView) =>
+  employee.department && typeof employee.department === 'object'
+    ? employee.department.name ?? ''
+    : ''
 </script>
 
 <template>
@@ -56,6 +62,9 @@ const contractLabel = (value: string) =>
     </template>
     <template #[`item.contractType`]="{ item }">
       {{ contractLabel(item.contractType) }}
+    </template>
+    <template #[`item.department`]="{ item }">
+      {{ departmentName(item) }}
     </template>
     <template #[`item.baseSalary`]="{ item }">
       ${{ Number(item.baseSalary).toLocaleString('es-CO') }}

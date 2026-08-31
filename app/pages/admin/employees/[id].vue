@@ -52,6 +52,8 @@ const {
   rejectRecord: rejectAbsenceRecord,
 } = useAbsenceState()
 
+const { shifts, fetchShifts } = useShiftState()
+
 const absenceFormOpen = ref(false)
 const rejectOpen = ref(false)
 const rejectingAbsence = ref<{ _id: string; type: string } | null>(null)
@@ -77,11 +79,6 @@ const load = async () => {
     // Error visible en VAlert.
   }
 }
-
-watch(employeeId, () => {
-  load()
-  fetchEmploymentHistory()
-}, { immediate: true })
 
 const fullName = computed(() =>
   currentEmployee.value
@@ -124,6 +121,12 @@ const seniorityLabel = computed(() => {
     : `${months} mes(es)`
 })
 
+const shiftName = computed(() => {
+  const shiftId = currentEmployee.value?.assignedShift
+  if (!shiftId) return 'Sin turno'
+  return shifts.value.find((shift) => shift._id === shiftId)?.name ?? 'Sin turno'
+})
+
 // ---- Historial de vinculación y contratos ----
 const employmentPeriods = ref<Array<Record<string, any>>>([])
 const contracts = ref<Array<Record<string, any>>>([])
@@ -157,6 +160,12 @@ const fetchEmploymentHistory = async () => {
     // Error silencioso: la sección queda vacía.
   }
 }
+
+watch(employeeId, () => {
+  load()
+  fetchEmploymentHistory()
+  fetchShifts().catch(() => {})
+}, { immediate: true })
 
 const rehireOpen = ref(false)
 const rehireDate = ref('')
@@ -291,7 +300,23 @@ const doReject = async () => {
   <div>
     <CommonPageHeader
       :title="fullName || 'Detalle de empleado'"
-      :subtitle="currentEmployee?.position || 'Cargando…'"
+      :subtitle="
+        currentEmployee
+          ? `${currentEmployee.position}${
+              currentEmployee.department &&
+              typeof currentEmployee.department === 'object' &&
+              currentEmployee.department.name
+                ? ` · ${currentEmployee.department.name}`
+                : ''
+            }${
+              currentEmployee.manager &&
+              typeof currentEmployee.manager === 'object' &&
+              currentEmployee.manager.firstName
+                ? ` · Jefe: ${currentEmployee.manager.firstName} ${currentEmployee.manager.lastName ?? ''}`
+                : ''
+            }`
+          : 'Cargando…'
+      "
     >
       <template #actions>
         <v-btn
@@ -362,7 +387,7 @@ const doReject = async () => {
         <div v-if="canManage" class="d-flex ga-2 flex-wrap">
           <v-btn
             variant="tonal"
-            prepend-icon="mdi-clock-in-outline"
+            prepend-icon="mdi-clock-in"
             :to="`/admin/attendance?employeeId=${currentEmployee._id}`"
           >
             Asistencia
@@ -444,7 +469,7 @@ const doReject = async () => {
               </span>
             </div>
             <div class="text-subtitle-1 font-weight-medium text-truncate">
-              {{ currentEmployee.assignedShift || 'Sin turno' }}
+              {{ shiftName }}
             </div>
             <div class="text-caption text-medium-emphasis">Según horario</div>
           </v-card-text>

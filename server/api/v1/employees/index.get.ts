@@ -55,6 +55,8 @@ export default defineEventHandler(async (event) => {
     .sort({ [sortBy]: sortOrder })
     .skip((query.page - 1) * query.limit)
     .limit(query.limit)
+    .populate('department', 'name')
+    .populate('manager', 'firstName lastName')
     .lean()
 
   return {

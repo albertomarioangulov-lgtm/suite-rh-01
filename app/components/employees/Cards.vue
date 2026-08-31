@@ -59,7 +59,14 @@ const asEmployee = (item: Record<string, any>): IEmployeeView =>
             {{ asEmployee(item).firstName }} {{ asEmployee(item).lastName }}
           </v-card-title>
           <v-card-subtitle class="text-body-2 text-truncate">
-            {{ asEmployee(item).position }}
+            {{ asEmployee(item).position
+            }}{{
+              asEmployee(item).department &&
+              typeof asEmployee(item).department === 'object' &&
+              asEmployee(item).department.name
+                ? ` · ${asEmployee(item).department.name}`
+                : ''
+            }}
           </v-card-subtitle>
         </v-card-item>
 

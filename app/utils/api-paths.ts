@@ -76,4 +76,13 @@ export const API_PATHS = {
     detail: (id: string) => `${API_BASE}/loans/${id}`,
     payment: (id: string) => `${API_BASE}/loans/${id}/payment`,
   },
+  contracts: {
+    list: `${API_BASE}/contracts`,
+  },
+  organization: {
+    departments: `${API_BASE}/departments`,
+    department: (id: string) => `${API_BASE}/departments/${id}`,
+    positions: `${API_BASE}/positions`,
+    position: (id: string) => `${API_BASE}/positions/${id}`,
+  },
 } as const

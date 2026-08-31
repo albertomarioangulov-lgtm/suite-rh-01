@@ -20,6 +20,8 @@ export default defineEventHandler(async (event) => {
   const employee = await Employee.findById(id)
     .populate('tenantId', 'name nit')
     .populate('user', 'name email active role')
+    .populate('department', 'name')
+    .populate('manager', 'firstName lastName')
   if (!employee) {
     throw createError({
       statusCode: 404,

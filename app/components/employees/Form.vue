@@ -47,11 +47,25 @@ const formState = reactive({
   contractType: props.employee?.contractType ?? 'indefinite',
   baseSalary: props.employee?.baseSalary ?? 0,
   position: props.employee?.position ?? '',
+  department: props.employee?.department
+    ? typeof props.employee.department === 'object'
+      ? (props.employee.department._id ?? '')
+      : props.employee.department
+    : '',
+  manager: props.employee?.manager
+    ? typeof props.employee.manager === 'object'
+      ? (props.employee.manager._id ?? '')
+      : props.employee.manager
+    : '',
   active: props.employee?.active ?? true,
 })
 
 const userOptions = ref<Array<{ title: string; value: string }>>([])
 const loadingUsers = ref(false)
+const departmentOptions = ref<Array<{ title: string; value: string }>>([])
+const positionOptions = ref<Array<{ title: string; value: string; departmentId: string | null }>>([])
+const loadingCatalog = ref(false)
+const managerOptions = ref<Array<{ title: string; value: string }>>([])
 
 onMounted(async () => {
   loadingUsers.value = true
@@ -68,6 +82,61 @@ onMounted(async () => {
   } finally {
     loadingUsers.value = false
   }
+})
+
+onMounted(async () => {
+  loadingCatalog.value = true
+  try {
+    const departments = await authFetch<{
+      items: Array<{ id: string; name: string }>
+    }>(API_PATHS.organization.departments)
+    departmentOptions.value = departments.items.map((department) => ({
+      title: department.name,
+      value: department.id,
+    }))
+    const positions = await authFetch<{
+      items: Array<{
+        id: string
+        title: string
+        departmentId: string | null
+      }>
+    }>(API_PATHS.organization.positions)
+    positionOptions.value = positions.items.map((position) => ({
+      title: position.title,
+      value: position.title,
+      departmentId: position.departmentId,
+    }))
+  } catch {
+    // Catálogo vacío: el campo de cargo sigue permitiendo texto libre.
+  } finally {
+    loadingCatalog.value = false
+  }
+})
+
+onMounted(async () => {
+  try {
+    const data = await authFetch<{
+      items: Array<{ _id: string; firstName: string; lastName: string }>
+    }>(API_PATHS.employees.list, {
+      query: { limit: 100, active: 'true' },
+    })
+    managerOptions.value = data.items
+      .filter((employee) => employee._id !== props.employee?._id)
+      .map((employee) => ({
+        title: `${employee.firstName} ${employee.lastName}`,
+        value: employee._id,
+      }))
+  } catch {
+    // Select de jefe directo queda vacío.
+  }
+})
+
+const filteredPositionOptions = computed(() => {
+  if (!formState.department) return positionOptions.value
+  return positionOptions.value.filter(
+    (position) =>
+      !position.departmentId || position.departmentId === formState.department,
+  )
 })
 
 const contractOptions = Object.entries(CONTRACT_TYPE_LABELS).map(
@@ -118,6 +187,8 @@ const save = async () => {
       contractType: formState.contractType,
       baseSalary: Number(formState.baseSalary),
       position: formState.position.trim(),
+      department: formState.department || null,
+      manager: formState.manager || null,
       active: formState.active,
     }
 
@@ -270,10 +341,33 @@ const save = async () => {
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-text-field
+        <v-select
+          v-model="formState.department"
+          :items="departmentOptions"
+          label="Área"
+          clearable
+          :loading="loadingCatalog"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-autocomplete
           v-model="formState.position"
+          :items="filteredPositionOptions"
+          item-title="title"
+          item-value="value"
           label="Cargo"
           :rules="rules.position"
+          :loading="loadingCatalog"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-autocomplete
+          v-model="formState.manager"
+          :items="managerOptions"
+          label="Jefe directo"
+          clearable
           class="mb-3"
         />
       </v-col>

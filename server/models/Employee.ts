@@ -36,6 +36,10 @@ const EmployeeSchema = new Schema(
     /** Clase de riesgo ARL (1-5) usada en el cálculo de seguridad social. */
     arlRiskClass: { type: Number, default: 1, min: 1, max: 5 },
     position: { type: String, required: true, trim: true },
+    /** Área o departamento de la organización (catálogo). */
+    department: { type: Schema.Types.ObjectId, ref: 'Department', default: null },
+    /** Jefe directo del empleado (reporta a). */
+    manager: { type: Schema.Types.ObjectId, ref: 'Employee', default: null },
     assignedShift: { type: Schema.Types.ObjectId, ref: 'Shift', default: null },
     active: { type: Boolean, default: true },
     /** Fecha de retiro/baja del empleado (para cálculo de rotación). */

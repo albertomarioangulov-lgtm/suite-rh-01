@@ -1,6 +1,14 @@
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart, GaugeChart, HeatmapChart, LineChart, PieChart } from 'echarts/charts'
+import {
+  BarChart,
+  GaugeChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  SunburstChart,
+  TreeChart,
+} from 'echarts/charts'
 import {
   GridComponent,
   LegendComponent,
@@ -22,6 +30,8 @@ export default defineNuxtPlugin(() => {
     HeatmapChart,
     LineChart,
     PieChart,
+    SunburstChart,
+    TreeChart,
     GridComponent,
     LegendComponent,
     TitleComponent,

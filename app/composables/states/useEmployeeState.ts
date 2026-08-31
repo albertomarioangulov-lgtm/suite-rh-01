@@ -16,6 +16,8 @@ export interface IEmployeeView {
   contractType: string
   baseSalary: number
   position: string
+  department?: { _id?: string; name?: string } | string | null
+  manager?: { _id?: string; firstName?: string; lastName?: string } | string | null
   assignedShift?: string
   active: boolean
   terminationDate?: string | null
@@ -34,6 +36,8 @@ export interface IEmployeePayload {
   contractType?: string
   baseSalary?: number
   position?: string
+  department?: string | null
+  manager?: string | null
   assignedShift?: string
   active?: boolean
 }

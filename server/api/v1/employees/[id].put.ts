@@ -97,6 +97,8 @@ export default defineEventHandler(async (event) => {
   if (data.contractType !== undefined) employee.contractType = data.contractType
   if (data.baseSalary !== undefined) employee.baseSalary = data.baseSalary
   if (data.position !== undefined) employee.position = data.position
+  if (data.department !== undefined) employee.department = data.department ?? null
+  if (data.manager !== undefined) employee.manager = data.manager ?? null
   if (data.assignedShift !== undefined)
     employee.assignedShift = data.assignedShift
   if (data.active !== undefined) employee.active = data.active

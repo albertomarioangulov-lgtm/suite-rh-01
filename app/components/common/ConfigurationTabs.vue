@@ -7,6 +7,7 @@ const activeTab = computed(() => {
   if (route.path.startsWith('/admin/configuration/history')) return 'history'
   if (route.path.startsWith('/admin/configuration/alerts')) return 'alerts'
   if (route.path.startsWith('/admin/configuration/flags')) return 'flags'
+  if (route.path.startsWith('/admin/organization')) return 'organization'
   return 'company'
 })
 </script>
@@ -47,6 +48,13 @@ const activeTab = computed(() => {
       to="/admin/configuration/flags"
     >
       Módulos
+    </v-tab>
+    <v-tab
+      value="organization"
+      prepend-icon="mdi-sitemap-outline"
+      to="/admin/organization"
+    >
+      Organización
     </v-tab>
   </v-tabs>
 </template>
