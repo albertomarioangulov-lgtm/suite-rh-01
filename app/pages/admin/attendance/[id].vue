@@ -115,7 +115,7 @@ const removeRecord = async () => {
       <v-card-item>
         <template #prepend>
           <v-avatar color="primary" variant="tonal" size="48">
-            <v-icon color="primary">mdi-clock-in-outline</v-icon>
+            <v-icon color="primary">mdi-clock-in</v-icon>
           </v-avatar>
         </template>
         <v-card-title class="text-h6 font-weight-bold">

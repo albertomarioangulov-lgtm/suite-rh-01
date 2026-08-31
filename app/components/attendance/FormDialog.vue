@@ -48,7 +48,7 @@ const onSaved = (data: Record<string, unknown>) => {
         style="z-index: 1"
       />
       <v-card-title class="text-subtitle-1 font-weight-bold d-flex align-center ga-2">
-        <v-icon color="primary">mdi-clock-in-outline</v-icon>
+        <v-icon color="primary">mdi-clock-in</v-icon>
         {{ title }}
         <v-spacer />
         <v-btn icon="mdi-close" variant="text" size="small" @click="close" />

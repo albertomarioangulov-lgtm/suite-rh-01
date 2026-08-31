@@ -198,7 +198,7 @@ export const helpSections: HelpSection[] = [
   {
     id: 'asistencia',
     title: 'Asistencia',
-    icon: 'mdi-clock-in-outline',
+    icon: 'mdi-clock-in',
     audience: 'gestion',
     category: 'modulos',
     summary: 'Registro de entradas y salidas, horas y extras.',
