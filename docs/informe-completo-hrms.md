@@ -283,10 +283,30 @@ Ejemplos: 20 empleados → Básico $200.000/mes · Profesional $320.000/mes · E
 | Módulo | Esfuerzo estimado |
 | :--- | :--- |
 | Portal de autoservicio | 3–4 días |
+| Bajas y liquidación final (incluido en el núcleo) | 3–5 días |
+| Contratos (módulo opcional) | ✅ Implementado (núcleo de historial listo) |
 | Evaluación de desempeño | 5–8 días |
-| Reclutamiento y selección | 5–7 días |
+| Reclutamiento y selección (integrado con contratos) | 5–7 días |
 | Nómina electrónica XML | 3–5 días |
 | Biometría / QR | 2–4 días |
+
+**Nota sobre contratos y bajas:** el módulo de **bajas y liquidación final** (retiro, motivo, certificado laboral, liquidación proporcional, histórico de ex-empleados y recontratación) forma parte del **núcleo del sistema** y está disponible para cualquier cliente. El módulo de **contratos** (historial, renovaciones, vencimientos) es **opcional** y se empalma con reclutamiento: al marcar un candidato como contratado se crea el empleado y se pre-genera su contrato.
+
+### Vinculación (núcleo) vs. Contratos (opcional)
+
+**Estado actual:** el historial de vinculación (EmploymentPeriod) y el módulo de contratos ya están implementados: la ficha del empleado muestra sus períodos (ingreso/salida/motivo/estado), permite reingresar, crear y renovar contratos, y el KPI de rotación cuenta períodos terminados (correcto para reingresos).
+
+El sistema distingue dos conceptos que suelen confundirse:
+
+| | EmploymentPeriod (vinculación) | Contract (documento legal) |
+| :--- | :--- | :--- |
+| Representa | El hecho: período en que la persona estuvo vinculada | El documento: condiciones (salario, cargo, tipo, vigencia) |
+| Pregunta | ¿Está vinculado? ¿Desde cuándo? ¿Cuándo salió? | ¿Qué condiciones tiene? ¿Cuándo vence? ¿Se renovó? |
+| Ciclo | Ingreso → vigente → salida → reingreso (nuevo período) | Creación → vigente → renovación → terminación |
+| Historial de reingresos | Sí: varios períodos por empleado | No aplica |
+| Módulo | **Núcleo** (todos los clientes) | **Opcional** (add-on) |
+
+**Relación:** un período de vinculación puede tener varios contratos (inicial, renovaciones, modificaciones), y cada contrato referencia su período. Sin el módulo de contratos, el sistema conserva el historial completo de ingresos, salidas y reingresos; con él, además se gestionan los documentos legales y sus vencimientos.
 
 ---
 
