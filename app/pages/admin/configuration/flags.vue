@@ -45,6 +45,7 @@ const descriptions: Record<string, string> = {
   analytics: 'Dashboard de indicadores y reportes.',
   performance: 'Evaluación de desempeño (en desarrollo).',
   recruitment: 'Reclutamiento y selección (en desarrollo).',
+  contracts: 'Contratos laborales e historial de vinculación (en desarrollo).',
   self_service: 'Portal de autoservicio (en desarrollo).',
 }
 </script>

@@ -1,4 +1,5 @@
 import { Employee } from '~~/server/models/Employee'
+import { terminateEmploymentPeriod } from '~~/server/services/employment.service'
 import { ROLES } from '~~/shared/auth'
 import { authorize } from '~~/server/utils/authorize'
 import {
@@ -11,7 +12,7 @@ import {
  * para alimentar el cálculo de rotación. Acceso: solo admin.
  */
 export default defineEventHandler(async (event) => {
-  await authorize(event, [ROLES.ADMIN])
+  const { userId } = await authorize(event, [ROLES.ADMIN])
   const body = await readBody(event).catch(() => ({}))
 
   const id = validateWithSchema(
@@ -26,12 +27,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  employee.active = false
-  employee.terminationDate = new Date()
-  if (body?.terminationReason) {
-    employee.terminationReason = body.terminationReason
-  }
-  await employee.save()
+  const period = await terminateEmploymentPeriod(
+    String(employee._id),
+    new Date(),
+    body?.terminationReason,
+    userId,
+  )
 
-  return { success: true }
+  return { success: true, periodId: String(period._id) }
 })

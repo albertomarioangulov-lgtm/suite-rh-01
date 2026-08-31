@@ -15,7 +15,7 @@ definePageMeta({
 const route = useRoute()
 const employeeId = computed(() => String(route.params.id))
 
-const { user: authUser } = useAuthState()
+const { user: authUser, authFetch } = useAuthState()
 const snackbar = useSnackbarState()
 const {
   currentEmployee,
@@ -78,7 +78,10 @@ const load = async () => {
   }
 }
 
-watch(employeeId, load, { immediate: true })
+watch(employeeId, () => {
+  load()
+  fetchEmploymentHistory()
+}, { immediate: true })
 
 const fullName = computed(() =>
   currentEmployee.value
@@ -120,6 +123,89 @@ const seniorityLabel = computed(() => {
     ? `${years} año(s) ${rest} mes(es)`
     : `${months} mes(es)`
 })
+
+// ---- Historial de vinculación y contratos ----
+const employmentPeriods = ref<Array<Record<string, any>>>([])
+const contracts = ref<Array<Record<string, any>>>([])
+const contractDialogOpen = ref(false)
+const contractSaving = ref(false)
+const contractForm = reactive({
+  employmentPeriodId: '',
+  type: 'indefinite',
+  startDate: '',
+  endDate: '',
+  salary: 0,
+  position: '',
+})
+
+const fetchEmploymentHistory = async () => {
+  try {
+    const [periodsData, contractsData] = await Promise.all([
+      authFetch<{ items: Array<Record<string, any>> }>(
+        `/api/v1/employment-periods/${employeeId.value}`,
+      ),
+      authFetch<{ items: Array<Record<string, any>> }>(
+        `/api/v1/contracts/${employeeId.value}/list`,
+      ),
+    ])
+    employmentPeriods.value = periodsData.items
+    contracts.value = contractsData.items
+    if (!contractForm.employmentPeriodId && periodsData.items.length) {
+      contractForm.employmentPeriodId = String(periodsData.items[0]._id)
+    }
+  } catch {
+    // Error silencioso: la sección queda vacía.
+  }
+}
+
+const rehireOpen = ref(false)
+const rehireDate = ref('')
+const rehiring = ref(false)
+
+const doRehire = async () => {
+  if (!rehireDate.value) return
+  rehiring.value = true
+  try {
+    await authFetch(`/api/v1/employees/${employeeId.value}/rehire`, {
+      method: 'POST',
+      body: { hireDate: rehireDate.value },
+    })
+    rehireOpen.value = false
+    snackbar.success('Empleado reingresado')
+    await load()
+    await fetchEmploymentHistory()
+  } catch {
+    snackbar.error('No se pudo registrar el reingreso')
+  }
+  rehiring.value = false
+}
+
+const saveContract = async () => {
+  contractSaving.value = true
+  try {
+    await authFetch('/api/v1/contracts', {
+      method: 'POST',
+      body: {
+        ...contractForm,
+        salary: Number(contractForm.salary),
+        endDate: contractForm.endDate || null,
+        position: contractForm.position || undefined,
+      },
+    })
+    contractDialogOpen.value = false
+    snackbar.success('Contrato creado')
+    await fetchEmploymentHistory()
+  } catch {
+    snackbar.error('No se pudo crear el contrato')
+  }
+  contractSaving.value = false
+}
+
+const contractTypeLabel = (type: string) =>
+  ({ indefinite: 'Indefinido', fixed: 'Fijo', work_labor: 'Obra o labor', intern: 'Prácticas' })[type] ?? type
+
+const periodStatusLabel = (status: string) =>
+  status === 'active' ? 'Vigente' : 'Terminado'
 
 const onSaved = async (data: Record<string, unknown>) => {
   try {
@@ -517,6 +603,108 @@ const doReject = async () => {
       </v-col>
     </v-row>
 
+    <!-- Historial de vinculación y contratos -->
+    <v-card v-if="currentEmployee && canManage" class="mt-4">
+      <v-card-item>
+        <v-card-title class="text-subtitle-1 font-weight-bold">
+          Vinculación y contratos
+        </v-card-title>
+        <template #append>
+          <v-btn
+            v-if="!currentEmployee.active"
+            size="small"
+            color="success"
+            variant="tonal"
+            prepend-icon="mdi-account-reactivate"
+            @click="rehireOpen = true"
+          >
+            Reingresar
+          </v-btn>
+          <v-btn
+            v-if="currentEmployee.active"
+            size="small"
+            color="primary"
+            variant="tonal"
+            prepend-icon="mdi-file-plus-outline"
+            @click="contractDialogOpen = true"
+          >
+            Nuevo contrato
+          </v-btn>
+        </template>
+      </v-card-item>
+      <v-divider />
+
+      <div class="pa-4">
+        <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+          Períodos de vinculación
+        </div>
+        <v-table v-if="employmentPeriods.length" density="compact">
+          <thead>
+            <tr>
+              <th>Ingreso</th>
+              <th>Salida</th>
+              <th>Motivo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="period in employmentPeriods" :key="period._id">
+              <td class="text-body-2">{{ formatDate(period.hireDate, 'DD/MM/YYYY') }}</td>
+              <td class="text-body-2">
+                {{ period.terminationDate ? formatDate(period.terminationDate, 'DD/MM/YYYY') : '—' }}
+              </td>
+              <td class="text-body-2">{{ period.terminationReason ?? '—' }}</td>
+              <td>
+                <v-chip
+                  size="x-small"
+                  variant="tonal"
+                  :color="period.status === 'active' ? 'success' : 'grey'"
+                >
+                  {{ periodStatusLabel(period.status) }}
+                </v-chip>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+        <p v-else class="text-body-2 text-medium-emphasis">
+          Sin períodos registrados. Se crean al dar de alta o reingresar al empleado.
+        </p>
+
+        <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2 mt-4">
+          Contratos
+        </div>
+        <v-table v-if="contracts.length" density="compact">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Salario</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="contract in contracts" :key="contract._id">
+              <td class="text-body-2">{{ contractTypeLabel(contract.type) }}</td>
+              <td class="text-body-2">{{ formatDate(contract.startDate, 'DD/MM/YYYY') }}</td>
+              <td class="text-body-2">
+                {{ contract.endDate ? formatDate(contract.endDate, 'DD/MM/YYYY') : '—' }}
+              </td>
+              <td class="text-body-2">{{ formatCOP(contract.salary) }}</td>
+              <td>
+                <v-chip size="x-small" variant="tonal" color="primary">
+                  {{ contract.status }}
+                </v-chip>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+        <p v-else class="text-body-2 text-medium-emphasis">
+          Sin contratos registrados.
+        </p>
+      </div>
+    </v-card>
+
     <AbsenceFormDialog
       v-model="absenceFormOpen"
       :initial-employee-id="employeeId"
@@ -528,6 +716,85 @@ const doReject = async () => {
       :employee="currentEmployee"
       @saved="onSaved"
     />
+
+    <v-dialog v-model="rehireOpen" max-width="420" persistent>
+      <v-card>
+        <v-card-title class="text-subtitle-1">Reingresar empleado</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="rehireDate"
+            label="Fecha de ingreso"
+            type="date"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" color="grey-darken-1" @click="rehireOpen = false">
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="success"
+            :loading="rehiring"
+            :disabled="rehiring || !rehireDate"
+            @click="doRehire"
+          >
+            Reingresar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="contractDialogOpen" max-width="560" persistent>
+      <v-card>
+        <v-card-title class="text-subtitle-1">Nuevo contrato</v-card-title>
+        <v-card-text>
+          <v-select
+            v-model="contractForm.employmentPeriodId"
+            :items="employmentPeriods.map((period) => ({
+              title: `${formatDate(period.hireDate, 'DD/MM/YYYY')} → ${period.terminationDate ? formatDate(period.terminationDate, 'DD/MM/YYYY') : 'actualidad'}`,
+              value: period._id,
+            }))"
+            label="Período de vinculación"
+            class="mb-3"
+          />
+          <v-select
+            v-model="contractForm.type"
+            :items="[
+              { title: 'Indefinido', value: 'indefinite' },
+              { title: 'Fijo', value: 'fixed' },
+              { title: 'Obra o labor', value: 'work_labor' },
+              { title: 'Prácticas', value: 'intern' },
+            ]"
+            label="Tipo de contrato"
+            class="mb-3"
+          />
+          <v-row>
+            <v-col cols="6">
+              <v-text-field v-model="contractForm.startDate" label="Inicio" type="date" class="mb-3" />
+            </v-col>
+            <v-col cols="6">
+              <v-text-field v-model="contractForm.endDate" label="Fin (opcional)" type="date" class="mb-3" />
+            </v-col>
+          </v-row>
+          <v-text-field v-model="contractForm.salary" label="Salario ($)" type="number" class="mb-3" />
+          <v-text-field v-model="contractForm.position" label="Cargo" class="mb-3" />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" color="grey-darken-1" @click="contractDialogOpen = false">
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="primary"
+            :loading="contractSaving"
+            :disabled="contractSaving"
+            @click="saveContract"
+          >
+            Crear contrato
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="rejectOpen" max-width="440" persistent>
       <v-card>

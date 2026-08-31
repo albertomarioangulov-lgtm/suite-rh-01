@@ -11,6 +11,7 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlag, string> = {
   analytics: 'Reportes y analítica',
   performance: 'Evaluación de desempeño',
   recruitment: 'Reclutamiento',
+  contracts: 'Contratos',
   self_service: 'Portal de autoservicio',
 }
 

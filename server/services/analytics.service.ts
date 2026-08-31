@@ -6,6 +6,7 @@ import { Absence } from '~~/server/models/Absence'
 import { Attendance } from '~~/server/models/Attendance'
 import { Employee } from '~~/server/models/Employee'
 import { Payroll } from '~~/server/models/Payroll'
+import { EmploymentPeriod } from '~~/server/models/EmploymentPeriod'
 
 dayjs.extend(utc)
 
@@ -436,10 +437,10 @@ export const getAnalyticsOverview = async (
     .utc(new Date(Date.UTC(year, month - 1, 1)))
     .subtract(12, 'month')
     .toDate()
-  const terminations = await Employee.countDocuments({
-    company: companyId,
+  const terminations = await EmploymentPeriod.countDocuments({
+    tenantId: companyId,
+    status: 'terminated',
     terminationDate: { $gte: twelveMonthsAgo, $lte: end },
-    active: false,
   })
   const rotationRate =
     activeEmployees > 0

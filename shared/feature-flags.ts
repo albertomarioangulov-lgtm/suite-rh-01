@@ -16,6 +16,7 @@ export const FEATURE_FLAGS = {
   ANALYTICS: 'analytics',
   PERFORMANCE: 'performance',
   RECRUITMENT: 'recruitment',
+  CONTRACTS: 'contracts',
   SELF_SERVICE: 'self_service',
 } as const
 
@@ -35,6 +36,7 @@ export const DEFAULT_FLAGS_BY_ROLE: Record<UserRole, FeatureFlag[]> = {
     FEATURE_FLAGS.ANALYTICS,
     FEATURE_FLAGS.PERFORMANCE,
     FEATURE_FLAGS.RECRUITMENT,
+    FEATURE_FLAGS.CONTRACTS,
     FEATURE_FLAGS.SELF_SERVICE,
   ],
   manager: [
