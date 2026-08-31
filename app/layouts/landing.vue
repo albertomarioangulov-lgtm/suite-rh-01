@@ -1,9 +1,12 @@
 <script setup lang="ts">
 const navLinks = [
-  { label: 'Funciones', href: '#funciones' },
-  { label: 'Cómo funciona', href: '#como-funciona' },
-  { label: 'Beneficios', href: '#beneficios' },
-  { label: 'Contacto', href: '#contacto' },
+  { label: 'Funciones', href: '/#funciones' },
+  { label: 'Demo', href: '/#demo' },
+  { label: 'Módulos', href: '/modulos' },
+  { label: 'Precios', href: '/precios' },
+  { label: 'Cómo funciona', href: '/#como-funciona' },
+  { label: 'Beneficios', href: '/#beneficios' },
+  { label: 'Contacto', href: '/contacto' },
 ]
 </script>
 
@@ -47,6 +50,16 @@ const navLinks = [
       <p class="text-body-2 text-white opacity-80 mb-1">
         Gestión de personas, turnos y nómina para empresas en Colombia.
       </p>
+      <nav class="d-flex justify-center flex-wrap ga-4 mb-3">
+        <a href="/modulos" class="text-caption text-white opacity-70 text-decoration-none">Módulos</a>
+        <a href="/precios" class="text-caption text-white opacity-70 text-decoration-none">Precios</a>
+        <a href="/implementacion" class="text-caption text-white opacity-70 text-decoration-none">Implementación</a>
+        <a href="/faq" class="text-caption text-white opacity-70 text-decoration-none">FAQ</a>
+        <a href="/seguridad" class="text-caption text-white opacity-70 text-decoration-none">Seguridad</a>
+        <a href="/contacto" class="text-caption text-white opacity-70 text-decoration-none">Contacto</a>
+        <a href="/privacidad" class="text-caption text-white opacity-70 text-decoration-none">Privacidad</a>
+        <a href="/terminos" class="text-caption text-white opacity-70 text-decoration-none">Términos</a>
+      </nav>
       <p class="text-caption text-white opacity-60">
         © {{ new Date().getFullYear() }} Suite RH. Todos los derechos reservados.
       </p>
@@ -55,6 +68,10 @@ const navLinks = [
 </template>
 
 <style scoped>
+html {
+  scroll-behavior: smooth;
+}
+
 .sticky-header {
   position: sticky;
   top: 0;

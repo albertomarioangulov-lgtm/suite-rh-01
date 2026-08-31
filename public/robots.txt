@@ -1,2 +1,7 @@
-User-Agent: *
-Disallow:
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /admin/
+
+Sitemap: https://suite-rh.com/sitemap.xml
