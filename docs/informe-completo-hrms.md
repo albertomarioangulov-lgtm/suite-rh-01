@@ -124,6 +124,9 @@ tests/               # Vitest
 - Seguridad social empleador: salud 8,5%, pensión 12%, ARL por clase de riesgo, parafiscales (SENA/ICBF/caja) — todo **configurable por período** en parámetros legales.
 - Préstamos a empleados con cuota automática y protección anti-doble descuento.
 - Recalcular desde asistencia, ajustes manuales, auditoría.
+- **Dashboard general de nóminas** (KPIs, distribución por estado y evolución del neto a pagar de las últimas nóminas).
+- **Dashboard por nómina** (pestaña Resumen): composición de devengado, deducciones, seguridad social y top de empleados por neto.
+- **Tabla de liquidación** por empleado con buscador y desglose completo (devengado, deducido y seguridad social) desde tabla o tarjetas.
 - **Pendiente: ❌ XML de nómina electrónica (CEN)** — estimación 3–5 días.
 
 ### 3.5 Ausencias, Permisos e Incapacidades — ✅ Implementado
@@ -141,6 +144,7 @@ tests/               # Vitest
 - Nómina por empleado (tabla), resumen de incapacidades, filtros de mes/año.
 - Alertas en vivo con SSE y campana (badge + lista + marcar leída).
 - Exportación a CSV.
+- **Dashboards por módulo**: nómina (general y por período) y asistencia (por rango: hoy, 7 días, mes, 30 días) con KPIs y gráficos propios.
 
 ### 3.7 Centro de Ayuda — ✅ Implementado
 
@@ -164,6 +168,7 @@ tests/               # Vitest
 - **Control por RRHH**: parámetros generales (frecuencia y fechas por defecto) y **campañas de evaluación** — ciclos planificados con nombre, estado (borrador/activa/cerrada), fechas, alcance (todas las áreas o áreas específicas), regla de evaluador (jefe directo o asignación manual) y autoevaluación opcional.
 - **Generación masiva**: el botón "Generar" de una campaña crea en lote las evaluaciones en **borrador** para los empleados del alcance: toma la **plantilla activa del cargo**, asigna el **evaluador según la regla** (jefe directo o RRHH) y deja los items sin puntaje para que el evaluador los califique. Es **idempotente** (no duplica; reporta creadas, ya existentes y omitidas por falta de plantilla). Solo Admin/RRH pueden generarla y las campañas **cerradas** no generan.
 - **Dashboard de campaña**: KPIs (totales, realizadas, pendientes, promedio), barra de avance, donut de estado, promedio por área y distribución por nivel.
+- **Avisos automáticos**: al generar, cada evaluador recibe una alerta consolidada en la campana con su total pendiente (se actualiza si sigue sin leer; se crea una nueva si ya la leyó). La autoevaluación también notifica al empleado.
 - **Trazabilidad**: cada cambio de configuración queda versionado (snapshot antes/después, usuario, comentario); la creación y aprobación de evaluaciones queda en la auditoría.
 - **Flujo**: borrador → completada → aprobada (bloqueada), puntaje 0–100 con nivel cualitativo y **PDF profesional** (logo de la empresa + Suite RH en el pie).
 
@@ -184,6 +189,9 @@ tests/               # Vitest
 | Multi-tenant | ✅ Implementado | tenantId + tenantActivo + middleware |
 | Roles y seguridad | ✅ Implementado | 4 roles, rutas protegidas, feature flags |
 | Dashboard analítico | ✅ Implementado | ECharts, KPIs, heatmap, gauge, export CSV |
+| Dashboard de nómina | ✅ Implementado | General (evolución y estados) y por nómina (composición y top empleados) |
+| Dashboard de asistencia | ✅ Implementado | Por rango: hoy, 7 días, mes, 30 días; KPIs y gráficos |
+| Evaluación: avisos automáticos | ✅ Implementado | Alerta consolidada al evaluador y aviso de autoevaluación |
 | Portal de autoservicio | ❌ Pendiente | Empleado solicita permisos y ve recibos (3–4 días) |
 | Centro de ayuda | ✅ Implementado | Manual por módulo, ayuda contextual |
 | Organización (áreas, cargos y organigrama) | ✅ Implementado | Catálogo de áreas/cargos con funciones, jefes directos, organigrama (árbol + sunburst) |

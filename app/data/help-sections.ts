@@ -232,6 +232,19 @@ export const helpSections: HelpSection[] = [
         tone: 'warning',
         text: 'Al superar los límites legales, el sistema genera una alerta para el empleado y la empresa.',
       },
+      { type: 'title', text: 'Dashboard de asistencia' },
+      {
+        type: 'paragraph',
+        text: 'En la parte superior de Asistencia hay un dashboard con el resumen del período. Permite elegir entre Hoy, 7 días, Este mes y 30 días.',
+      },
+      {
+        type: 'list',
+        items: [
+          'KPIs: registros, horas trabajadas (diurnas/nocturnas), horas extra y pendientes de aprobación.',
+          'Gráficos: horas por día, registros por estado, composición de horas y top de empleados por horas trabajadas.',
+          'Los rangos ya consultados se guardan en memoria, así que volver a un período es inmediato.',
+        ],
+      },
     ],
     faqs: [
       {
@@ -401,6 +414,15 @@ export const helpSections: HelpSection[] = [
           'Devengados: salario base prorrateado, auxilio de transporte, extras, recargos, bonificaciones, comisiones y valores de incapacidad.',
           'Deducciones: salud, pensión, retención en la fuente, embargos y préstamos.',
           'Seguridad social empleador: salud, pensión, ARL y parafiscales.',
+        ],
+      },
+      { type: 'title', text: 'Dashboards de nómina' },
+      {
+        type: 'list',
+        items: [
+          'General: en la página Nómina se muestran KPIs (nóminas, neto acumulado, empleados liquidados y promedio) y gráficos de distribución por estado y evolución del neto a pagar.',
+          'Por nómina: en el detalle, la pestaña Resumen incluye KPIs y la composición de devengado, deducciones y seguridad social, más el top de empleados por neto.',
+          'Empleados: vista de tabla con buscador y desglose completo por empleado (devengado, deducido y seguridad social).',
         ],
       },
       { type: 'title', text: '¿Cómo se calcula cada dato?' },
@@ -919,6 +941,11 @@ export const helpSections: HelpSection[] = [
         type: 'warning',
         text: 'Si un cargo no tiene plantilla activa, el empleado se omite y se indica en el resultado de la generación. Crea primero la plantilla del cargo.',
         tone: 'info',
+      },
+      { type: 'title', text: 'Avisos automáticos al evaluar' },
+      {
+        type: 'paragraph',
+        text: 'Al generar, cada evaluador recibe una notificación en la campana con el total de evaluaciones pendientes (una sola alerta consolidada por campaña). Si llegan más evaluaciones y la alerta sigue sin leer, se actualiza con el nuevo total; si ya la leyó, se crea una nueva. Si la campaña permite autoevaluación, el empleado recibe su aviso con el enlace a su autoevaluación.',
       },
       { type: 'title', text: 'Crear una plantilla por cargo' },
       {
