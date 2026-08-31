@@ -39,6 +39,7 @@ export const API_PATHS = {
   },
   attendance: {
     list: `${API_BASE}/attendance`,
+    dashboard: `${API_BASE}/attendance/dashboard`,
     detail: (id: string) => `${API_BASE}/attendance/${id}`,
     approve: (id: string) => `${API_BASE}/attendance/${id}/approve`,
     reject: (id: string) => `${API_BASE}/attendance/${id}/reject`,
@@ -55,6 +56,7 @@ export const API_PATHS = {
   },
   payroll: {
     list: `${API_BASE}/payroll`,
+    dashboard: `${API_BASE}/payroll/dashboard`,
     detail: (id: string) => `${API_BASE}/payroll/${id}`,
     approve: (id: string) => `${API_BASE}/payroll/${id}/approve`,
     pay: (id: string) => `${API_BASE}/payroll/${id}/pay`,
