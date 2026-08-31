@@ -38,10 +38,8 @@ export default defineEventHandler(async (event) => {
   }
   if (!tenantId) return empty
 
-  const { dateFrom, dateTo } = getQuery(event) as Record<
-    string,
-    string | undefined
-  >
+  const { dateFrom, dateTo, employeeId, status, search } = getQuery(event) as
+    Record<string, string | undefined>
   let from: Date | null = null
   let to: Date | null = null
   if (dateFrom) from = new Date(dateFrom)
@@ -61,6 +59,23 @@ export default defineEventHandler(async (event) => {
     match.tenantId = new mongoose.Types.ObjectId(tenantId)
   }
   if (dateFilter.$gte || dateFilter.$lte) match.date = dateFilter
+  if (status) match.status = status
+  if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const ids = await Employee.find({
+      tenantId,
+      $or: [
+        { firstName: { $regex: escaped, $options: 'i' } },
+        { lastName: { $regex: escaped, $options: 'i' } },
+        { document: { $regex: escaped, $options: 'i' } },
+      ],
+    })
+      .select('_id')
+      .lean()
+    match.employee = { $in: ids.map((employee) => employee._id) }
+  } else if (employeeId && mongoose.isValidObjectId(employeeId)) {
+    match.employee = new mongoose.Types.ObjectId(employeeId)
+  }
 
   // Las agregaciones corren en paralelo para no acumular latencia de red
   // (cada una viaja a Atlas por separado).
@@ -101,7 +116,11 @@ export default defineEventHandler(async (event) => {
       _id: string
       records: number
       hoursWorked: number
+      dayHours: number
+      nightHours: number
       overtime: number
+      overtimeDay: number
+      overtimeNight: number
     }>([
       { $match: match },
       {
@@ -115,6 +134,8 @@ export default defineEventHandler(async (event) => {
           },
           records: { $sum: 1 },
           hoursWorked: { $sum: { $ifNull: ['$hoursWorked', 0] } },
+          dayHours: { $sum: { $ifNull: ['$dayHours', 0] } },
+          nightHours: { $sum: { $ifNull: ['$nightHours', 0] } },
           overtime: {
             $sum: {
               $ifNull: [
@@ -123,6 +144,8 @@ export default defineEventHandler(async (event) => {
               ],
             },
           },
+          overtimeDay: { $sum: { $ifNull: ['$overtimeDayHours', 0] } },
+          overtimeNight: { $sum: { $ifNull: ['$overtimeNightHours', 0] } },
         },
       },
       { $sort: { _id: 1 } },
@@ -190,7 +213,11 @@ export default defineEventHandler(async (event) => {
       date: item._id,
       records: item.records,
       hoursWorked: round2(item.hoursWorked),
+      dayHours: round2(item.dayHours),
+      nightHours: round2(item.nightHours),
       overtime: round2(item.overtime),
+      overtimeDay: round2(item.overtimeDay),
+      overtimeNight: round2(item.overtimeNight),
     })),
     topEmployees,
   }

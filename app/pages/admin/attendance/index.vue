@@ -7,6 +7,7 @@ import { formatCOP } from '~/utils/number-helpers'
 import { formatDate } from '~~/shared/utils/datetime-helpers'
 import VChart from 'vue-echarts'
 import dayjs from 'dayjs'
+import { useDebounceFn } from '@vueuse/core'
 
 definePageMeta({
   middleware: 'auth',
@@ -41,6 +42,21 @@ const canDelete = computed(() => role.value === ROLES.ADMIN)
 
 const options = ref({ page: 1, itemsPerPage: 10 })
 const employeeOptions = ref<Array<{ title: string; value: string }>>([])
+const employeeNameById = new Map<string, string>()
+
+const selectedEmployeeName = computed(() =>
+  filters.value.employeeId
+    ? employeeNameById.get(filters.value.employeeId) ?? ''
+    : '',
+)
+
+const clearEmployeeFilter = () => setFilter('employeeId', undefined)
+
+const pageSubtitle = computed(() =>
+  filters.value.employeeId
+    ? 'Registros filtrados por empleado'
+    : 'Control de entrada/salida y cálculo de horas extras',
+)
 
 // ---- Dashboard de asistencia ----
 
@@ -61,7 +77,11 @@ interface IAttendanceDashboard {
     date: string
     records: number
     hoursWorked: number
+    dayHours: number
+    nightHours: number
     overtime: number
+    overtimeDay: number
+    overtimeNight: number
   }>
   topEmployees: Array<{
     employeeId: string
@@ -73,20 +93,21 @@ interface IAttendanceDashboard {
 
 const dashboard = ref<IAttendanceDashboard | null>(null)
 const dashboardLoading = ref(false)
-const period = ref<'today' | '7d' | 'month' | '30d'>('30d')
-// Cache por período: volver a un rango ya consultado es instantáneo.
+const search = ref('')
+const activeTab = ref<'dashboard' | 'list'>('dashboard')
+// Cache por combinación de filtros: volver a una vista ya consultada es instantáneo.
 const dashboardCache = new Map<string, IAttendanceDashboard>()
 
 const periodOptions = [
-  { title: 'Hoy', value: 'today' },
-  { title: '7 días', value: '7d' },
-  { title: 'Este mes', value: 'month' },
-  { title: '30 días', value: '30d' },
+  { title: 'Hoy', value: 'today', icon: 'mdi-calendar-today' },
+  { title: '7 días', value: '7d', icon: 'mdi-calendar-week' },
+  { title: 'Este mes', value: 'month', icon: 'mdi-calendar-month' },
+  { title: '30 días', value: '30d', icon: 'mdi-calendar-range' },
 ]
 
-const periodRange = computed(() => {
+const presetRange = (preset: string) => {
   const now = dayjs()
-  switch (period.value) {
+  switch (preset) {
     case 'today':
       return {
         dateFrom: now.format('YYYY-MM-DD'),
@@ -105,13 +126,58 @@ const periodRange = computed(() => {
     default:
       return {
         dateFrom: now.subtract(29, 'day').format('YYYY-MM-DD'),
-        dateTo: now.format('YYYY-MM-DD'),
+          dateTo: now.format('YYYY-MM-DD'),
       }
   }
+}
+
+const activePreset = computed(() => {
+  const { dateFrom, dateTo } = filters.value
+  const match = periodOptions.find((option) => {
+    const range = presetRange(option.value)
+    return range.dateFrom === dateFrom && range.dateTo === dateTo
+  })
+  return match?.value ?? ''
 })
 
+const activePresetLabel = computed(
+  () =>
+    periodOptions.find((option) => option.value === activePreset.value)?.title ??
+    'Período',
+)
+
+const applyPreset = (value: string) => {
+  if (!value) {
+    setFilter('dateFrom', undefined)
+    setFilter('dateTo', undefined)
+  } else {
+    const range = presetRange(value)
+    setFilter('dateFrom', range.dateFrom)
+    setFilter('dateTo', range.dateTo)
+  }
+  reloadAll()
+}
+
+const onDateChange = (key: 'dateFrom' | 'dateTo', value: unknown) => {
+  if (!value) {
+    setFilter(key, undefined)
+    return
+  }
+  const date = dayjs(value as Date | string)
+  setFilter(key, date.isValid() ? date.format('YYYY-MM-DD') : undefined)
+}
+
+const dashboardParams = computed(() => ({
+  employeeId: filters.value.employeeId || undefined,
+  status: filters.value.status || undefined,
+  dateFrom: filters.value.dateFrom || undefined,
+  dateTo: filters.value.dateTo || undefined,
+  search: search.value.trim() || undefined,
+}))
+
 const fetchDashboard = async () => {
-  const key = `${period.value}:${periodRange.value.dateFrom}:${periodRange.value.dateTo}`
+  const params = dashboardParams.value
+  const key = JSON.stringify(params)
   const cached = dashboardCache.get(key)
   if (cached) {
     dashboard.value = cached
@@ -121,7 +187,7 @@ const fetchDashboard = async () => {
   try {
     const data = await authFetch<IAttendanceDashboard>(
       API_PATHS.attendance.dashboard,
-      { query: periodRange.value },
+      { query: params },
     )
     dashboard.value = data
     dashboardCache.set(key, data)
@@ -132,7 +198,42 @@ const fetchDashboard = async () => {
   }
 }
 
-watch(period, fetchDashboard)
+const load = async () => {
+  try {
+    await fetchRecords({
+      page: options.value.page,
+      limit: options.value.itemsPerPage,
+      employeeId: filters.value.employeeId || undefined,
+      status: filters.value.status || undefined,
+      dateFrom: filters.value.dateFrom || undefined,
+      dateTo: filters.value.dateTo || undefined,
+      search: search.value.trim() || undefined,
+    })
+  } catch {
+    // Error visible en el VAlert.
+  }
+}
+
+const reloadAll = () => {
+  load()
+  fetchDashboard()
+}
+
+const debouncedReload = useDebounceFn(reloadAll, 350)
+
+watch(
+  () => [
+    filters.value.employeeId,
+    filters.value.status,
+    filters.value.dateFrom,
+    filters.value.dateTo,
+    search.value,
+  ],
+  () => {
+    options.value.page = 1
+    debouncedReload()
+  },
+)
 
 const dashboardKpis = computed(() => {
   const data = dashboard.value
@@ -181,7 +282,11 @@ const statusDonutOptions = computed(() => {
   ].filter((item) => item.value > 0)
   return {
     tooltip: { trigger: 'item' },
-    legend: { top: 0, left: 'center' },
+    legend: {
+      top: 0,
+      left: 'center',
+      data: ['Diurnas', 'Nocturnas', 'Extras diurnas', 'Extras nocturnas'],
+    },
     series: [
       {
         name: 'Registros por estado',
@@ -234,10 +339,34 @@ const hoursCompositionOptions = computed(() => {
 
 const dailyOptions = computed(() => {
   const items = dashboard.value?.daily ?? []
+  const showAverage = items.length > 1
+  const averageOf = (pick: (item: (typeof items)[number]) => number) =>
+    items.length ? items.reduce((sum, item) => sum + pick(item), 0) / items.length : 0
+  const avgTotal = averageOf((item) => item.hoursWorked)
+  const avgExtraDay = averageOf((item) => item.overtimeDay)
+  const avgExtraNight = averageOf((item) => item.overtimeNight)
+  const avgExtraTotal = averageOf((item) => item.overtime)
+  // El promedio total de extras solo tiene sentido con ambos segmentos visibles.
+  const showExtraTotalAvg =
+    showAverage && extraDayVisible.value && extraNightVisible.value
+  const avgMarkLine = (value: number, color: string) => ({
+    symbol: 'none' as const,
+    label: { fontSize: 10 },
+    data: [
+      {
+        yAxis: value,
+        lineStyle: { color, type: 'dashed' as const },
+        label: { formatter: 'Prom. {c}h', color },
+      },
+    ],
+  })
   return {
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (value: number) => `${value}h`,
+    },
     legend: { top: 0, left: 'center' },
-    grid: { left: 24, right: 24, top: 48, bottom: 24 },
+    grid: { left: 24, right: 24, top: 56, bottom: 24 },
     xAxis: {
       type: 'category' as const,
       data: items.map((item) => formatDate(item.date, 'DD/MM')),
@@ -253,18 +382,67 @@ const dailyOptions = computed(() => {
     },
     series: [
       {
-        name: 'Horas trabajadas',
+        name: 'Diurnas',
         type: 'bar' as const,
+        stack: 'total',
         barMaxWidth: 28,
-        data: items.map((item) => item.hoursWorked),
-        itemStyle: { color: '#1867C0', borderRadius: [4, 4, 0, 0] },
+        data: items.map((item) => item.dayHours),
+        itemStyle: { color: '#1867C0' },
+        ...(showAverage ? { markLine: avgMarkLine(avgTotal, '#1867C0') } : {}),
       },
       {
-        name: 'Horas extra',
-        type: 'line' as const,
-        smooth: true,
-        data: items.map((item) => item.overtime),
+        name: 'Nocturnas',
+        type: 'bar' as const,
+        stack: 'total',
+        data: items.map((item) => item.nightHours),
+        itemStyle: { color: '#48A9A6' },
+      },
+      {
+        name: 'Extras diurnas',
+        type: 'bar' as const,
+        stack: 'total',
+        data: items.map((item) => item.overtimeDay),
         itemStyle: { color: '#FB8C00' },
+        ...(showAverage
+          ? {
+              markLine: {
+                symbol: 'none' as const,
+                label: { fontSize: 10 },
+                data: [
+                  {
+                    yAxis: avgExtraDay,
+                    lineStyle: { color: '#FB8C00', type: 'dashed' as const },
+                    label: { formatter: 'Prom. {c}h', color: '#FB8C00' },
+                  },
+                  ...(showExtraTotalAvg
+                    ? [
+                        {
+                          yAxis: avgExtraTotal,
+                          lineStyle: {
+                            color: '#EF6C00',
+                            type: 'dashed' as const,
+                          },
+                          label: {
+                            formatter: 'Prom. extras {c}h',
+                            color: '#EF6C00',
+                          },
+                        },
+                      ]
+                    : []),
+                ],
+              },
+            }
+          : {}),
+      },
+      {
+        name: 'Extras nocturnas',
+        type: 'bar' as const,
+        stack: 'total',
+        data: items.map((item) => item.overtimeNight),
+        itemStyle: { color: '#9C27B0' },
+        ...(showAverage
+          ? { markLine: avgMarkLine(avgExtraNight, '#9C27B0') }
+          : {}),
       },
     ],
   }
@@ -300,9 +478,27 @@ const topEmployeesOptions = computed(() => {
   }
 })
 
+// Estado de visibilidad de las series de extras (leyenda del gráfico).
+const extraDayVisible = ref(true)
+const extraNightVisible = ref(true)
+
+const onLegendSelect = (payload: {
+  name?: string
+  selected?: Record<string, boolean>
+}) => {
+  if (!payload.selected) return
+  extraDayVisible.value = payload.selected['Extras diurnas'] ?? true
+  extraNightVisible.value = payload.selected['Extras nocturnas'] ?? true
+}
+
 onMounted(async () => {
   if (route.query.employeeId) {
     setFilter('employeeId', String(route.query.employeeId))
+  }
+  if (!filters.value.dateFrom && !filters.value.dateTo) {
+    const range = presetRange('30d')
+    setFilter('dateFrom', range.dateFrom)
+    setFilter('dateTo', range.dateTo)
   }
   load()
   fetchDashboard()
@@ -315,26 +511,17 @@ onMounted(async () => {
         title: `${employee.firstName} ${employee.lastName} (${employee.document})`,
         value: employee._id,
       }))
+      for (const employee of data.items) {
+        employeeNameById.set(
+          employee._id,
+          `${employee.firstName} ${employee.lastName}`.trim(),
+        )
+      }
     } catch {
       // Error silencioso.
     }
   }
 })
-
-const load = async () => {
-  try {
-    await fetchRecords({
-      page: options.value.page,
-      limit: options.value.itemsPerPage,
-      employeeId: filters.value.employeeId || undefined,
-      status: filters.value.status || undefined,
-      dateFrom: filters.value.dateFrom || undefined,
-      dateTo: filters.value.dateTo || undefined,
-    })
-  } catch {
-    // Error visible en el VAlert.
-  }
-}
 
 const onUpdateOptions = (value: unknown) => {
   const next = value as Partial<typeof options.value>
@@ -425,10 +612,28 @@ const handleView = (record: IAttendanceRecord) =>
 <template>
   <div>
     <CommonPageHeader
-      title="Asistencia"
-      subtitle="Control de entrada/salida y cálculo de horas extras"
+      :subtitle="pageSubtitle"
     >
+      <template #title>
+        Asistencia
+        <template v-if="selectedEmployeeName">
+          de
+          <span class="text-primary font-weight-bold">
+            {{ selectedEmployeeName }}
+          </span>
+        </template>
+      </template>
       <template #actions>
+        <v-btn
+          v-if="selectedEmployeeName"
+          variant="text"
+          color="primary"
+          prepend-icon="mdi-filter-remove-outline"
+          class="text-none"
+          @click="clearEmployeeFilter"
+        >
+          Quitar filtro
+        </v-btn>
         <v-btn
           v-if="canManage"
           color="primary"
@@ -441,30 +646,113 @@ const handleView = (record: IAttendanceRecord) =>
       </template>
     </CommonPageHeader>
 
-    <!-- Dashboard de asistencia -->
-    <div v-if="canManage" class="mb-4">
-      <div class="d-flex align-center flex-wrap ga-2 mb-3">
-        <span class="text-subtitle-1 font-weight-bold">
-          Dashboard de asistencia
-        </span>
-        <v-spacer />
-        <v-btn-toggle
-          v-model="period"
-          density="compact"
-          color="primary"
-          variant="tonal"
-          divided
-        >
-          <v-btn
-            v-for="option in periodOptions"
-            :key="option.value"
-            :value="option.value"
-            size="small"
-          >
-            {{ option.title }}
-          </v-btn>
-        </v-btn-toggle>
-      </div>
+    <!-- Controles compartidos (búsqueda y filtros) + pestañas -->
+    <div v-if="canManage" class="mb-3">
+      <CommonListToolbar
+        v-model:search="search"
+        search-placeholder="Buscar por nombre o documento…"
+        :loading="loading"
+      >
+        <template #filters>
+          <v-menu location="bottom start">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                variant="solo"
+                flat
+                density="compact"
+                bg-color="surface-light"
+                class="text-none"
+                prepend-icon="mdi-calendar-range"
+                append-icon="mdi-chevron-down"
+                style="max-width: 200px"
+              >
+                {{ activePresetLabel }}
+              </v-btn>
+            </template>
+            <v-list density="compact">
+              <v-list-item
+                v-for="option in periodOptions"
+                :key="option.value"
+                :active="activePreset === option.value"
+                color="primary"
+                @click="applyPreset(option.value)"
+              >
+                <template #prepend>
+                  <v-icon size="small">{{ option.icon }}</v-icon>
+                </template>
+                <v-list-item-title>{{ option.title }}</v-list-item-title>
+                <template #append>
+                  <v-icon
+                    v-if="activePreset === option.value"
+                    size="x-small"
+                    color="primary"
+                  >
+                    mdi-check
+                  </v-icon>
+                </template>
+              </v-list-item>
+              <v-divider />
+              <v-list-item disabled>
+                <v-list-item-title class="text-caption text-medium-emphasis">
+                  Fechas personalizadas: usa Desde / Hasta
+                </v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+          <v-autocomplete
+            v-model="filters.employeeId"
+            :items="employeeOptions"
+            label="Empleado"
+            item-title="title"
+            item-value="value"
+            clearable
+            style="max-width: 220px"
+          />
+          <v-select
+            v-model="filters.status"
+            :items="[
+              { title: 'Todos los estados', value: '' },
+              { title: 'Pendiente', value: 'pending' },
+              { title: 'Aprobado', value: 'approved' },
+              { title: 'Rechazado', value: 'rejected' },
+            ]"
+            label="Estado"
+            style="max-width: 150px"
+          />
+          <v-date-input
+            :model-value="filters.dateFrom ? dayjs(filters.dateFrom).toDate() : null"
+            label="Desde"
+            input-format="YYYY-MM-DD"
+            variant="solo"
+            flat
+            density="compact"
+            hide-details
+            clearable
+            style="max-width: 200px"
+            @update:model-value="onDateChange('dateFrom', $event)"
+          />
+          <v-date-input
+            :model-value="filters.dateTo ? dayjs(filters.dateTo).toDate() : null"
+            label="Hasta"
+            input-format="YYYY-MM-DD"
+            variant="solo"
+            flat
+            density="compact"
+            hide-details
+            clearable
+            style="max-width: 200px"
+            @update:model-value="onDateChange('dateTo', $event)"
+          />
+        </template>
+      </CommonListToolbar>
+
+      <v-tabs v-model="activeTab" color="primary" class="mb-3">
+        <v-tab value="dashboard" prepend-icon="mdi-view-dashboard-outline">
+          Dashboard
+        </v-tab>
+        <v-tab value="list" prepend-icon="mdi-view-list-outline">Lista</v-tab>
+      </v-tabs>
 
       <v-progress-linear
         v-if="dashboardLoading"
@@ -474,7 +762,7 @@ const handleView = (record: IAttendanceRecord) =>
         class="mb-2"
       />
 
-      <template v-if="dashboard">
+      <template v-if="activeTab === 'dashboard' && dashboard">
         <v-row density="compact" class="mb-4">
           <v-col
             v-for="kpi in dashboardKpis"
@@ -507,12 +795,16 @@ const handleView = (record: IAttendanceRecord) =>
                 <v-card-title class="text-subtitle-1 font-weight-bold">
                   Horas por día
                 </v-card-title>
+                <v-card-subtitle class="text-caption">
+                  Barras apiladas: ordinarias y extras · líneas = promedio del período
+                </v-card-subtitle>
               </v-card-item>
               <v-divider />
               <v-card-text>
                 <VChart
                   :option="dailyOptions"
                   autoresize
+                  @legendselectchanged="onLegendSelect"
                   style="height: 280px; width: 100%"
                 />
               </v-card-text>
@@ -571,53 +863,23 @@ const handleView = (record: IAttendanceRecord) =>
           </v-col>
         </v-row>
       </template>
-    </div>
 
-    <div v-if="canManage">
-      <CommonListToolbar hide-search :loading="loading">
-        <template #filters>
-          <v-autocomplete
-            v-model="filters.employeeId"
-            :items="employeeOptions"
-            label="Empleado"
-            item-title="title"
-            item-value="value"
-            clearable
-           
-            style="max-width: 300px"
-            @update:model-value="setFilter('employeeId', $event); options.page = 1; load()"
-          />
-          <v-select
-            v-model="filters.status"
-            :items="[
-              { title: 'Todos los estados', value: '' },
-              { title: 'Pendiente', value: 'pending' },
-              { title: 'Aprobado', value: 'approved' },
-              { title: 'Rechazado', value: 'rejected' },
-            ]"
-            label="Estado"
-           
-            style="max-width: 180px"
-            @update:model-value="setFilter('status', $event); options.page = 1; load()"
-          />
-          <v-text-field
-            v-model="filters.dateFrom"
-            label="Desde"
-            type="date"
-           
-            style="max-width: 170px"
-            @update:model-value="setFilter('dateFrom', $event); options.page = 1; load()"
-          />
-          <v-text-field
-            v-model="filters.dateTo"
-            label="Hasta"
-            type="date"
-           
-            style="max-width: 170px"
-            @update:model-value="setFilter('dateTo', $event); options.page = 1; load()"
-          />
-        </template>
-      </CommonListToolbar>
+      <AttendanceTable
+        v-else-if="activeTab === 'list'"
+        :items="records"
+        :total="pagination.total"
+        :loading="loading"
+        :page="options.page"
+        :items-per-page="options.itemsPerPage"
+        :can-manage="canManage"
+        :can-delete="canDelete"
+        @update:options="onUpdateOptions"
+        @view="handleView"
+        @edit="handleEdit"
+        @approve="handleApprove"
+        @reject="handleReject"
+        @delete="confirmDelete"
+      />
     </div>
 
     <v-alert
@@ -630,27 +892,8 @@ const handleView = (record: IAttendanceRecord) =>
       closable
       @click:close="error = ''"
     />
-
-    
-      <AttendanceTable
-        v-if="canManage"
-        :items="records"
-        :total="pagination.total"
-        :loading="false"
-        :page="options.page"
-        :items-per-page="options.itemsPerPage"
-        :can-manage="canManage"
-        :can-delete="canDelete"
-        @update:options="onUpdateOptions"
-        @view="handleView"
-        @edit="handleEdit"
-        @approve="handleApprove"
-        @reject="handleReject"
-        @delete="confirmDelete"
-      />
-
     <v-alert
-      v-else
+      v-if="!canManage"
       type="warning"
       variant="tonal"
       text="No tienes permisos para ver la asistencia."

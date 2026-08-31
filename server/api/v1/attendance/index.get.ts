@@ -1,5 +1,6 @@
 import type { QueryFilter } from 'mongoose'
 import { Attendance, type IAttendance } from '~~/server/models/Attendance'
+import { Employee } from '~~/server/models/Employee'
 import { ROLES } from '~~/shared/auth'
 import { getTenantId, requireFlag } from '~~/server/utils/tenant'
 import { FEATURE_FLAGS } from '~~/shared/feature-flags'
@@ -18,14 +19,26 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = validateWithSchema(paginationSchema, getQuery(event))
-  const { employeeId, dateFrom, dateTo, status } = getQuery(event) as Record<
-    string,
-    string | undefined
-  >
+  const { employeeId, dateFrom, dateTo, status, search } = getQuery(event) as
+    Record<string, string | undefined>
 
   const filter: QueryFilter<IAttendance> = {}
   filter.tenantId = tenantId
   if (employeeId) filter.employee = employeeId
+  if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const ids = await Employee.find({
+      tenantId,
+      $or: [
+        { firstName: { $regex: escaped, $options: 'i' } },
+        { lastName: { $regex: escaped, $options: 'i' } },
+        { document: { $regex: escaped, $options: 'i' } },
+      ],
+    })
+      .select('_id')
+      .lean()
+    filter.employee = { $in: ids.map((employee) => employee._id) }
+  }
   if (status) filter.status = status as IAttendance['status']
   if (dateFrom || dateTo) {
     filter.date = {

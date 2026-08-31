@@ -12,6 +12,7 @@ import {
 import {
   GridComponent,
   LegendComponent,
+  MarkLineComponent,
   TitleComponent,
   TooltipComponent,
   VisualMapComponent,
@@ -34,6 +35,7 @@ export default defineNuxtPlugin(() => {
     TreeChart,
     GridComponent,
     LegendComponent,
+    MarkLineComponent,
     TitleComponent,
     TooltipComponent,
     VisualMapComponent,

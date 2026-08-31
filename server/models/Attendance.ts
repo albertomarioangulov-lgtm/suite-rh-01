@@ -53,7 +53,10 @@ const AttendanceSchema = new Schema(
 
 AttendanceSchema.index({ employee: 1, date: 1 }, { unique: true })
 AttendanceSchema.index({ tenantId: 1, date: -1 })
-AttendanceSchema.index({ tenantId: 1, date: 1, employee: 1 })
+// Filtro por empleado + rango de fechas (lista "Asistencia de X").
+AttendanceSchema.index({ tenantId: 1, employee: 1, date: -1 })
+// Filtro por estado + rango de fechas (pendientes/aprobados/rechazados).
+AttendanceSchema.index({ tenantId: 1, status: 1, date: -1 })
 AttendanceSchema.index({ status: 1 })
 
 /**

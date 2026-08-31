@@ -40,6 +40,13 @@ const employeeName = (record: IAttendanceRecord) => {
   }
   return employee || '—'
 }
+
+const totalOvertime = (record: IAttendanceRecord) =>
+  (record.overtimeDayHours ?? 0) + (record.overtimeNightHours ?? 0)
+
+/** Resalta la fila cuando se supera el límite legal diario (2 h). */
+const rowClass = (record: IAttendanceRecord) =>
+  totalOvertime(record) > 2 ? 'bg-warning-lighten-5' : ''
 </script>
 
 <template>
@@ -51,6 +58,7 @@ const employeeName = (record: IAttendanceRecord) => {
     :items-per-page="itemsPerPage"
     :page="page"
     :items-per-page-options="[5, 10, 25, 50]"
+    :item-class="rowClass"
     @update:options="emit('update:options', $event)"
   >
     <template #[`item.employee`]="{ item }">
@@ -73,13 +81,29 @@ const employeeName = (record: IAttendanceRecord) => {
       {{ formatTime(item.clockOut) }}
     </template>
     <template #[`item.hoursWorked`]="{ item }">
-      {{ item.hoursWorked.toFixed(1) }}h
+      <span class="font-weight-medium">{{ item.hoursWorked.toFixed(1) }}h</span>
     </template>
     <template #[`item.overtimeDayHours`]="{ item }">
-      {{ item.overtimeDayHours.toFixed(1) }}h
+      <v-chip
+        v-if="item.overtimeDayHours > 0"
+        size="x-small"
+        color="warning"
+        variant="tonal"
+      >
+        +{{ item.overtimeDayHours.toFixed(1) }}h
+      </v-chip>
+      <span v-else class="text-caption text-medium-emphasis">0.0h</span>
     </template>
     <template #[`item.overtimeNightHours`]="{ item }">
-      {{ item.overtimeNightHours.toFixed(1) }}h
+      <v-chip
+        v-if="item.overtimeNightHours > 0"
+        size="x-small"
+        color="deep-purple"
+        variant="tonal"
+      >
+        +{{ item.overtimeNightHours.toFixed(1) }}h
+      </v-chip>
+      <span v-else class="text-caption text-medium-emphasis">0.0h</span>
     </template>
     <template #[`item.status`]="{ item }">
       <AttendanceStatusBadge :status="item.status" />
