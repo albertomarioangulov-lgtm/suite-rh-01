@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Seed de demostración: 4 meses completos de HRMS.
+ * Seed de demostración: 6 meses completos de HRMS.
  *
  * Genera (idempotente):
  * - Usuarios demo (rol employee, contraseña "Demo123!") + fichas de empleado.
@@ -10,9 +10,10 @@
  * - Ausencias aprobadas de varios tipos (permiso médico, citación legal,
  *   calamidad, luto, incapacidad común, vacaciones, día de bicicleta,
  *   permiso sin remunerar).
- * - Nóminas: los 3 primeros meses APROBADAS y el último (mes actual) en
+ * - Nóminas: los 5 primeros meses APROBADAS y el último (mes actual) en
  *   BORRADOR, con devengados/deducciones/seguridad social calculados igual
  *   que el servicio de producción.
+ * - Áreas y cargos del catálogo organizacional, asignados a cada empleado.
  *
  * Uso:
  *   node scripts/seed-demo-payroll-month.mjs
@@ -46,7 +47,7 @@ const today = new Date()
 const DEMO_YEAR = Number(process.env.DEMO_YEAR) || today.getFullYear()
 const DEMO_MONTH = Number(process.env.DEMO_MONTH) || today.getMonth() + 1
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Demo123!'
-const MONTH_COUNT = 4
+const MONTH_COUNT = 6
 
 const uri = `${process.env.MONGODB_URI}/${process.env.MONGODB_NAME || 'nomina_app'}?retryWrites=true&w=majority`
 await mongoose.connect(uri)
@@ -100,7 +101,7 @@ for (let offset = MONTH_COUNT - 1; offset >= 0; offset -= 1) {
 }
 
 console.log(
-  `Ventana demo: ${months[3].label} (borrador) + ${months[0].label} – ${months[2].label} (aprobadas)`,
+  `Ventana demo: ${months[months.length - 1].label} (borrador) + ${months[0].label} – ${months[months.length - 2].label} (aprobadas)`,
 )
 
 // ------------------------------------------------------------- perfiles
@@ -142,6 +143,8 @@ const profiles = [
       [2, ABSENCE_TYPES.PERMISO_LEGAL, 20, 20],
       [1, ABSENCE_TYPES.CALAMIDAD_DOMESTICA, 10, 11],
       [0, ABSENCE_TYPES.LUTO, 6, 6],
+      [4, ABSENCE_TYPES.CALAMIDAD_DOMESTICA, 6, 7],
+      [5, ABSENCE_TYPES.PERMISO_MEDICO, 10, 10],
     ],
   },
   {
@@ -155,7 +158,10 @@ const profiles = [
     shiftType: AFTERNOON,
     arlRiskClass: 2,
     overtimeWeekdays: [],
-    absences: [[1, ABSENCE_TYPES.INCAPACIDAD_COMUN, 15, 19]],
+    absences: [
+      [1, ABSENCE_TYPES.INCAPACIDAD_COMUN, 15, 19],
+      [5, ABSENCE_TYPES.INCAPACIDAD_COMUN, 8, 12],
+    ],
   },
   {
     document: '1000000004',
@@ -168,7 +174,10 @@ const profiles = [
     shiftType: AFTERNOON,
     arlRiskClass: 2,
     overtimeWeekdays: [1, 3],
-    absences: [[1, ABSENCE_TYPES.VACACIONES, 22, 24]],
+    absences: [
+      [1, ABSENCE_TYPES.VACACIONES, 22, 24],
+      [4, ABSENCE_TYPES.VACACIONES, 20, 22],
+    ],
   },
   {
     document: '1000000005',
@@ -184,7 +193,256 @@ const profiles = [
     absences: [
       [2, ABSENCE_TYPES.PERMISO_BICICLETA, 3, 3],
       [0, ABSENCE_TYPES.SIN_REMUNERAR, 13, 14],
+      [4, ABSENCE_TYPES.PERMISO_BICICLETA, 15, 15],
+      [5, ABSENCE_TYPES.SIN_REMUNERAR, 24, 25],
     ],
+  },
+  {
+    document: '1000000006',
+    firstName: 'Daniela',
+    lastName: 'Torres',
+    email: 'demo.daniela@nomina.test',
+    baseSalary: 4200000,
+    position: 'Desarrolladora de software',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000007',
+    firstName: 'Andrés',
+    lastName: 'Castro',
+    email: 'demo.andres@nomina.test',
+    baseSalary: 2200000,
+    position: 'Ejecutivo de ventas',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [2, 4],
+    absences: [
+      [2, ABSENCE_TYPES.PERMISO_MEDICO, 12, 12],
+      [5, ABSENCE_TYPES.PERMISO_MEDICO, 3, 3],
+    ],
+  },
+  {
+    document: '1000000008',
+    firstName: 'Valentina',
+    lastName: 'Herrera',
+    email: 'demo.valentina@nomina.test',
+    baseSalary: 2600000,
+    position: 'Analista de RRHH',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [
+      [1, ABSENCE_TYPES.PERMISO_ESCOLAR, 5, 5],
+      [4, ABSENCE_TYPES.PERMISO_ESCOLAR, 12, 12],
+    ],
+  },
+  {
+    document: '1000000009',
+    firstName: 'Sebastián',
+    lastName: 'Ramírez',
+    email: 'demo.sebastian@nomina.test',
+    baseSalary: 1950000,
+    position: 'Coordinador de bodega',
+    contractType: 'fixed',
+    shiftType: AFTERNOON,
+    arlRiskClass: 3,
+    overtimeWeekdays: [1, 3, 5],
+    absences: [
+      [0, ABSENCE_TYPES.CALAMIDAD_DOMESTICA, 20, 21],
+      [5, ABSENCE_TYPES.CALAMIDAD_DOMESTICA, 19, 20],
+    ],
+  },
+  {
+    document: '1000000010',
+    firstName: 'Camila',
+    lastName: 'Vargas',
+    email: 'demo.camila@nomina.test',
+    baseSalary: 3100000,
+    position: 'Coordinadora de calidad',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [
+      [0, ABSENCE_TYPES.MATRIMONIO, 9, 13],
+      [4, ABSENCE_TYPES.LUTO, 7, 7],
+      [5, ABSENCE_TYPES.VACACIONES, 21, 23],
+    ],
+  },
+  {
+    document: '1000000011',
+    firstName: 'Diana',
+    lastName: 'Marín',
+    email: 'demo.diana@nomina.test',
+    baseSalary: 2800000,
+    position: 'Coordinadora administrativa',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000012',
+    firstName: 'Felipe',
+    lastName: 'Acosta',
+    email: 'demo.felipe@nomina.test',
+    baseSalary: 5500000,
+    position: 'Líder de tecnología',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000013',
+    firstName: 'Laura',
+    lastName: 'Peña',
+    email: 'demo.laura@nomina.test',
+    baseSalary: 4500000,
+    position: 'Directora comercial',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000014',
+    firstName: 'Natalia',
+    lastName: 'Duarte',
+    email: 'demo.natalia@nomina.test',
+    baseSalary: 3800000,
+    position: 'Líder de talento humano',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000015',
+    firstName: 'Andrea',
+    lastName: 'Salazar',
+    email: 'demo.andrea@nomina.test',
+    baseSalary: 1900000,
+    position: 'Asistente contable',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000016',
+    firstName: 'Juan',
+    lastName: 'Herrera',
+    email: 'demo.juan@nomina.test',
+    baseSalary: 1850000,
+    position: 'Operario de producción',
+    contractType: 'fixed',
+    shiftType: AFTERNOON,
+    arlRiskClass: 2,
+    overtimeWeekdays: [2, 5],
+    absences: [[5, ABSENCE_TYPES.PERMISO_MEDICO, 12, 12]],
+  },
+  {
+    document: '1000000017',
+    firstName: 'Marcela',
+    lastName: 'Ríos',
+    email: 'demo.marcela@nomina.test',
+    baseSalary: 2100000,
+    position: 'Inspectora de calidad',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000018',
+    firstName: 'Sergio',
+    lastName: 'Pardo',
+    email: 'demo.sergio@nomina.test',
+    baseSalary: 1750000,
+    position: 'Auxiliar de despacho',
+    contractType: 'fixed',
+    shiftType: AFTERNOON,
+    arlRiskClass: 2,
+    overtimeWeekdays: [1, 4],
+    absences: [[4, ABSENCE_TYPES.CALAMIDAD_DOMESTICA, 14, 15]],
+  },
+  {
+    document: '1000000019',
+    firstName: 'Miguel',
+    lastName: 'Rojas',
+    email: 'demo.miguel@nomina.test',
+    baseSalary: 3200000,
+    position: 'Desarrollador de software',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000020',
+    firstName: 'Paola',
+    lastName: 'Ospina',
+    email: 'demo.paola.ospina@nomina.test',
+    baseSalary: 1900000,
+    position: 'Asesora comercial',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [3],
+    absences: [[5, ABSENCE_TYPES.PERMISO_ESCOLAR, 6, 6]],
+  },
+  {
+    document: '1000000021',
+    firstName: 'Sara',
+    lastName: 'Gómez',
+    email: 'demo.sara@nomina.test',
+    baseSalary: 1750000,
+    position: 'Auxiliar de RRHH',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
+  },
+  {
+    document: '1000000022',
+    firstName: 'Ricardo',
+    lastName: 'Jaramillo',
+    email: 'demo.ricardo.jaramillo@nomina.test',
+    baseSalary: 2800000,
+    position: 'Analista financiero',
+    contractType: 'indefinite',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [[4, ABSENCE_TYPES.PERMISO_LEGAL, 8, 8]],
+  },
+  {
+    document: '1000000023',
+    firstName: 'Luisa',
+    lastName: 'Fernández',
+    email: 'demo.luisa@nomina.test',
+    baseSalary: 1650000,
+    position: 'Recepcionista',
+    contractType: 'fixed',
+    shiftType: DAY,
+    arlRiskClass: 1,
+    overtimeWeekdays: [],
+    absences: [],
   },
   // Bajas demo para el KPI de rotación (contrato vencido / retiro voluntario).
   {
@@ -218,6 +476,300 @@ const profiles = [
     terminated: true,
     terminationDate: '2026-06-15',
     terminationReason: 'retiro_voluntario',
+  },
+]
+
+// ------------------------------------------------- áreas y cargos (catálogo)
+const DEPARTMENT_BY_POSITION = {
+  Contadora: 'Finanzas',
+  'Auxiliar administrativo': 'Administración',
+  'Operario de producción': 'Operaciones',
+  'Auxiliar de bodega': 'Logística',
+  'Supervisor de planta': 'Operaciones',
+  'Desarrolladora de software': 'Tecnología',
+  'Ejecutivo de ventas': 'Comercial',
+  'Analista de RRHH': 'Talento Humano',
+  'Coordinador de bodega': 'Logística',
+  'Coordinadora de calidad': 'Calidad',
+  'Coordinadora administrativa': 'Administración',
+  'Líder de tecnología': 'Tecnología',
+  'Directora comercial': 'Comercial',
+  'Líder de talento humano': 'Talento Humano',
+  'Asistente contable': 'Finanzas',
+  'Analista financiero': 'Finanzas',
+  'Inspectora de calidad': 'Calidad',
+  'Auxiliar de despacho': 'Logística',
+  'Desarrollador de software': 'Tecnología',
+  'Asesora comercial': 'Comercial',
+  'Auxiliar de RRHH': 'Talento Humano',
+  Recepcionista: 'Administración',
+}
+
+const POSITION_CATALOG = [
+  {
+    title: 'Contadora',
+    department: 'Finanzas',
+    functions: [
+      'Elaborar y revisar los estados financieros del período.',
+      'Conciliar cuentas bancarias y de proveedores.',
+      'Preparar la información para declaraciones tributarias.',
+      'Apoyar el presupuesto anual y su seguimiento.',
+    ],
+    requirements: ['Título en contaduría pública', 'Experiencia mínima de 3 años'],
+    minSalary: 2900000,
+    maxSalary: 3800000,
+  },
+  {
+    title: 'Auxiliar administrativo',
+    department: 'Administración',
+    functions: [
+      'Gestionar la correspondencia y archivo documental.',
+      'Apoyar la logística de reuniones y eventos internos.',
+      'Mantener actualizadas las bases de datos administrativas.',
+    ],
+    requirements: ['Técnico o tecnólogo administrativo', 'Manejo de Office'],
+    minSalary: 1600000,
+    maxSalary: 2000000,
+  },
+  {
+    title: 'Operario de producción',
+    department: 'Operaciones',
+    functions: [
+      'Operar la línea de producción según el plan diario.',
+      'Cumplir los estándares de seguridad y calidad.',
+      'Reportar novedades de máquinas o materiales.',
+    ],
+    requirements: ['Bachillerato', 'Disponibilidad para turnos'],
+    minSalary: 1700000,
+    maxSalary: 2100000,
+  },
+  {
+    title: 'Auxiliar de bodega',
+    department: 'Logística',
+    functions: [
+      'Recibir, verificar y almacenar mercancía.',
+      'Preparar pedidos para despacho.',
+      'Mantener el inventario actualizado en el sistema.',
+    ],
+    requirements: ['Bachillerato', 'Experiencia en bodega'],
+    minSalary: 1600000,
+    maxSalary: 2000000,
+  },
+  {
+    title: 'Supervisor de planta',
+    department: 'Operaciones',
+    functions: [
+      'Coordinar los turnos y la asignación del personal.',
+      'Velar por el cumplimiento de metas de producción.',
+      'Asegurar el cumplimiento de normas de seguridad.',
+    ],
+    requirements: ['Tecnólogo o ingeniero industrial', 'Experiencia liderando equipos'],
+    minSalary: 2500000,
+    maxSalary: 3300000,
+  },
+  {
+    title: 'Desarrolladora de software',
+    department: 'Tecnología',
+    functions: [
+      'Desarrollar y mantener las funcionalidades del sistema.',
+      'Revisar y corregir errores reportados.',
+      'Participar en el diseño técnico de nuevas soluciones.',
+    ],
+    requirements: ['Ingeniería de sistemas o afines', 'Conocimiento de JavaScript'],
+    minSalary: 3500000,
+    maxSalary: 5000000,
+  },
+  {
+    title: 'Ejecutivo de ventas',
+    department: 'Comercial',
+    functions: [
+      'Atender y prospectar clientes nuevos.',
+      'Elaborar propuestas y dar seguimiento al cierre.',
+      'Registrar la gestión comercial en el CRM.',
+    ],
+    requirements: ['Tecnólogo o profesional', 'Orientación a resultados'],
+    minSalary: 1800000,
+    maxSalary: 2800000,
+  },
+  {
+    title: 'Analista de RRHH',
+    department: 'Talento Humano',
+    functions: [
+      'Administrar novedades de personal y ausencias.',
+      'Apoyar los procesos de selección y bienestar.',
+      'Mantener al día la documentación laboral.',
+    ],
+    requirements: ['Psicología o administración', 'Conocimiento de legislación laboral'],
+    minSalary: 2200000,
+    maxSalary: 3200000,
+  },
+  {
+    title: 'Coordinador de bodega',
+    department: 'Logística',
+    functions: [
+      'Planear la recepción y despacho de mercancía.',
+      'Controlar el inventario y los niveles mínimos.',
+      'Coordinar al equipo de auxiliares de bodega.',
+    ],
+    requirements: ['Tecnólogo en logística', 'Experiencia en el cargo'],
+    minSalary: 1800000,
+    maxSalary: 2400000,
+  },
+  {
+    title: 'Coordinadora de calidad',
+    department: 'Calidad',
+    functions: [
+      'Ejecutar auditorías internas de calidad.',
+      'Gestionar no conformidades y planes de acción.',
+      'Documentar los indicadores de calidad.',
+    ],
+    requirements: ['Ingeniería o afines', 'Experiencia en sistemas de gestión'],
+    minSalary: 2800000,
+    maxSalary: 3600000,
+  },
+  {
+    title: 'Coordinadora administrativa',
+    department: 'Administración',
+    functions: [
+      'Coordinar las actividades administrativas de la empresa.',
+      'Supervisar el archivo documental y la correspondencia.',
+      'Apoyar la gestión de proveedores y compras menores.',
+    ],
+    requirements: ['Tecnólogo o profesional administrativo', 'Experiencia en coordinación'],
+    minSalary: 2400000,
+    maxSalary: 3200000,
+  },
+  {
+    title: 'Líder de tecnología',
+    department: 'Tecnología',
+    functions: [
+      'Liderar el equipo de desarrollo y soporte.',
+      'Definir la hoja de ruta técnica de la compañía.',
+      'Garantizar la disponibilidad y seguridad de los sistemas.',
+    ],
+    requirements: ['Ingeniería de sistemas o afines', 'Experiencia liderando equipos técnicos'],
+    minSalary: 4800000,
+    maxSalary: 6500000,
+  },
+  {
+    title: 'Directora comercial',
+    department: 'Comercial',
+    functions: [
+      'Definir la estrategia comercial y de crecimiento.',
+      'Coordinar al equipo de ventas y metas del período.',
+      'Gestionar cuentas clave y alianzas.',
+    ],
+    requirements: ['Profesional en administración o marketing', 'Experiencia en dirección comercial'],
+    minSalary: 3800000,
+    maxSalary: 5500000,
+  },
+  {
+    title: 'Líder de talento humano',
+    department: 'Talento Humano',
+    functions: [
+      'Liderar los procesos de gestión humana y bienestar.',
+      'Coordinar selección, capacitación y clima laboral.',
+      'Garantizar el cumplimiento de la normativa laboral.',
+    ],
+    requirements: ['Profesional en RRHH o psicología', 'Experiencia en el área'],
+    minSalary: 3200000,
+    maxSalary: 4500000,
+  },
+  {
+    title: 'Asistente contable',
+    department: 'Finanzas',
+    functions: [
+      'Registrar facturas, cuentas por pagar y por cobrar.',
+      'Apoyar las conciliaciones bancarias mensuales.',
+      'Organizar la documentación contable del período.',
+    ],
+    requirements: ['Técnico en contabilidad', 'Manejo de Excel'],
+    minSalary: 1700000,
+    maxSalary: 2200000,
+  },
+  {
+    title: 'Analista financiero',
+    department: 'Finanzas',
+    functions: [
+      'Elaborar informes financieros y de flujo de caja.',
+      'Analizar indicadores y proyecciones del negocio.',
+      'Apoyar la gestión de cartera y pagos.',
+    ],
+    requirements: ['Profesional en finanzas o contaduría', 'Manejo de Excel avanzado'],
+    minSalary: 2400000,
+    maxSalary: 3200000,
+  },
+  {
+    title: 'Inspectora de calidad',
+    department: 'Calidad',
+    functions: [
+      'Inspeccionar productos y procesos según estándares.',
+      'Registrar resultados de inspección y no conformidades.',
+      'Apoyar las auditorías internas de calidad.',
+    ],
+    requirements: ['Técnico o tecnólogo en calidad', 'Atención al detalle'],
+    minSalary: 1800000,
+    maxSalary: 2400000,
+  },
+  {
+    title: 'Auxiliar de despacho',
+    department: 'Logística',
+    functions: [
+      'Preparar y despachar pedidos a tiempo.',
+      'Verificar cantidades y documentación de entrega.',
+      'Coordinar rutas con el transporte.',
+    ],
+    requirements: ['Bachillerato', 'Disponibilidad para turnos'],
+    minSalary: 1600000,
+    maxSalary: 2000000,
+  },
+  {
+    title: 'Desarrollador de software',
+    department: 'Tecnología',
+    functions: [
+      'Implementar funcionalidades del sistema.',
+      'Corregir errores y realizar pruebas.',
+      'Documentar el código y los procesos.',
+    ],
+    requirements: ['Ingeniería de sistemas o afines', 'Conocimiento de JavaScript'],
+    minSalary: 2500000,
+    maxSalary: 3800000,
+  },
+  {
+    title: 'Asesora comercial',
+    department: 'Comercial',
+    functions: [
+      'Atender clientes y cotizar productos o servicios.',
+      'Dar seguimiento a oportunidades de venta.',
+      'Actualizar la información comercial en el sistema.',
+    ],
+    requirements: ['Bachillerato o técnico', 'Orientación al cliente'],
+    minSalary: 1600000,
+    maxSalary: 2200000,
+  },
+  {
+    title: 'Auxiliar de RRHH',
+    department: 'Talento Humano',
+    functions: [
+      'Apoyar la gestión documental de los empleados.',
+      'Registrar novedades y ausencias en el sistema.',
+      'Colaborar en los procesos de bienestar.',
+    ],
+    requirements: ['Técnico en gestión humana', 'Manejo de Office'],
+    minSalary: 1600000,
+    maxSalary: 2000000,
+  },
+  {
+    title: 'Recepcionista',
+    department: 'Administración',
+    functions: [
+      'Recibir y atender visitantes y llamadas.',
+      'Gestionar la correspondencia de entrada y salida.',
+      'Apoyar la logística de reuniones.',
+    ],
+    requirements: ['Bachillerato', 'Excelente servicio al cliente'],
+    minSalary: 1500000,
+    maxSalary: 1900000,
   },
 ]
 
@@ -277,6 +829,60 @@ if (!afternoonShift) {
 }
 const afternoonShiftId = afternoonShift._id
 
+// ------------------------------------------------- áreas y cargos (creación)
+const departmentCollection = db.collection('departments')
+const positionCollection = db.collection('positions')
+
+const departmentDefinitions = [
+  { name: 'Administración', code: 'ADM', color: '#3B82F6', description: 'Gestión administrativa y soporte general.' },
+  { name: 'Finanzas', code: 'FIN', color: '#16A34A', description: 'Contabilidad, presupuesto y control financiero.' },
+  { name: 'Operaciones', code: 'OPS', color: '#FB8C00', description: 'Producción, mantenimiento y supervisión de planta.' },
+  { name: 'Tecnología', code: 'TIC', color: '#7C3AED', description: 'Desarrollo y soporte tecnológico.' },
+  { name: 'Comercial', code: 'COM', color: '#DB2777', description: 'Ventas, clientes y crecimiento comercial.' },
+  { name: 'Talento Humano', code: 'RRHH', color: '#0EA5E9', description: 'Gestión de personas, bienestar y nómina.' },
+  { name: 'Logística', code: 'LOG', color: '#EAB308', description: 'Bodega, inventarios y despachos.' },
+  { name: 'Calidad', code: 'CAL', color: '#DC2626', description: 'Aseguramiento y control de calidad.' },
+]
+
+const departmentIds = new Map()
+for (const definition of departmentDefinitions) {
+  await departmentCollection.updateOne(
+    { tenantId: company._id, name: definition.name },
+    {
+      $set: {
+        ...definition,
+        tenantId: company._id,
+        active: true,
+        updatedAt: now,
+      },
+      $setOnInsert: { createdAt: now },
+    },
+    { upsert: true },
+  )
+  const doc = await departmentCollection.findOne({
+    tenantId: company._id,
+    name: definition.name,
+  })
+  departmentIds.set(definition.name, doc._id)
+}
+
+for (const position of POSITION_CATALOG) {
+  await positionCollection.updateOne(
+    { tenantId: company._id, title: position.title },
+    {
+      $set: {
+        ...position,
+        department: departmentIds.get(position.department) ?? null,
+        tenantId: company._id,
+        active: true,
+        updatedAt: now,
+      },
+      $setOnInsert: { createdAt: now },
+    },
+    { upsert: true },
+  )
+}
+
 // ----------------------------------------------------- empleados + usuarios
 const demoEmployeeIds = []
 const demoEmployees = []
@@ -313,11 +919,15 @@ const upsertEmployee = async (profile) => {
     firstName: profile.firstName,
     lastName: profile.lastName,
     email: profile.email,
-    hireDate: new Date(`${months[3].year}-01-05T12:00:00.000Z`),
+    hireDate: new Date(
+      `${months[months.length - 1].year}-01-05T12:00:00.000Z`,
+    ),
     contractType: profile.contractType,
     baseSalary: profile.baseSalary,
     arlRiskClass: profile.arlRiskClass,
     position: profile.position,
+    department:
+      departmentIds.get(DEPARTMENT_BY_POSITION[profile.position] ?? '') ?? null,
     assignedShift: shiftId,
     active: true,
     createdBy: admin?._id ?? null,
@@ -373,6 +983,64 @@ if (existingEmployee) {
   })
 } else {
   console.warn('No se encontró el empleado existente (Alfredo Marco); se omite.')
+}
+
+// ------------------------------------------- jefes directos y de área
+const employeeIdByDocument = new Map()
+for (const employee of demoEmployees) {
+  employeeIdByDocument.set(String(employee.profile.document), employee._id)
+}
+
+// Jefes directos: documento del empleado -> documento de su jefe.
+const managerByDocument = {
+  '1000000002': '1000000011', // Carlos Gómez → Diana Marín (Administración)
+  '1000000003': '1000000005', // Luis Pérez → Jorge Sánchez (Operaciones)
+  '1000000004': '1000000009', // María Rodríguez → Sebastián Ramírez (Logística)
+  '1000000006': '1000000012', // Daniela Torres → Felipe Acosta (Tecnología)
+  '1000000007': '1000000013', // Andrés Castro → Laura Peña (Comercial)
+  '1000000008': '1000000014', // Valentina Herrera → Natalia Duarte (Talento Humano)
+  '1000000015': '1000000001', // Andrea Salazar → Ana Martínez (Finanzas)
+  '1000000016': '1000000005', // Juan Herrera → Jorge Sánchez (Operaciones)
+  '1000000017': '1000000010', // Marcela Ríos → Camila Vargas (Calidad)
+  '1000000018': '1000000009', // Sergio Pardo → Sebastián Ramírez (Logística)
+  '1000000019': '1000000012', // Miguel Rojas → Felipe Acosta (Tecnología)
+  '1000000020': '1000000013', // Paola Ospina → Laura Peña (Comercial)
+  '1000000021': '1000000014', // Sara Gómez → Natalia Duarte (Talento Humano)
+  '1000000022': '1000000001', // Ricardo Jaramillo → Ana Martínez (Finanzas)
+  '1000000023': '1000000011', // Luisa Fernández → Diana Marín (Administración)
+}
+
+for (const [document, managerDocument] of Object.entries(managerByDocument)) {
+  const employeeId = employeeIdByDocument.get(document)
+  const managerId = employeeIdByDocument.get(managerDocument)
+  if (employeeId && managerId) {
+    await employees.updateOne(
+      { _id: employeeId },
+      { $set: { manager: managerId, updatedAt: now } },
+    )
+  }
+}
+
+// Jefes de área: nombre del área -> documento del responsable.
+const areaManagerByDocument = {
+  Administración: '1000000011', // Diana Marín
+  Finanzas: '1000000001', // Ana Martínez
+  Operaciones: '1000000005', // Jorge Sánchez
+  Tecnología: '1000000012', // Felipe Acosta
+  Comercial: '1000000013', // Laura Peña
+  'Talento Humano': '1000000014', // Natalia Duarte
+  Logística: '1000000009', // Sebastián Ramírez
+  Calidad: '1000000010', // Camila Vargas
+}
+
+for (const [areaName, managerDocument] of Object.entries(areaManagerByDocument)) {
+  const managerId = employeeIdByDocument.get(managerDocument)
+  if (managerId) {
+    await departmentCollection.updateOne(
+      { tenantId: company._id, name: areaName },
+      { $set: { manager: managerId, updatedAt: now } },
+    )
+  }
 }
 
 // ------------------------------------------------------------- utilidades
@@ -745,9 +1413,15 @@ for (const monthInfo of months) {
   }
   if (absenceDocs.length) await absences.insertMany(absenceDocs)
 
-  // Asistencias (se salta TODOS los días cubiertos por cada ausencia).
-  const absenceDates = new Set()
+  // Asistencias: se salta únicamente los días cubiertos por cada ausencia del
+  // propio empleado (no los de otros empleados).
+  const absenceDatesByEmployee = new Map()
   for (const absence of absenceDocs) {
+    const employeeKey = String(absence.employee)
+    if (!absenceDatesByEmployee.has(employeeKey)) {
+      absenceDatesByEmployee.set(employeeKey, new Set())
+    }
+    const absenceDates = absenceDatesByEmployee.get(employeeKey)
     for (
       let cursor = new Date(absence.startDate);
       cursor <= absence.endDate;
@@ -760,9 +1434,11 @@ for (const monthInfo of months) {
   const attendanceDocs = []
   for (const employee of demoEmployees) {
     const profile = employee.profile
+    const employeeAbsenceDates =
+      absenceDatesByEmployee.get(String(employee._id)) ?? new Set()
     for (const workday of workdays) {
       const dateKey = `${monthInfo.year}-${pad(monthInfo.month)}-${pad(workday.day)}`
-      if (absenceDates.has(dateKey)) continue
+      if (employeeAbsenceDates.has(dateKey)) continue
       attendanceDocs.push(buildAttendance(employee, profile, workday))
     }
   }
