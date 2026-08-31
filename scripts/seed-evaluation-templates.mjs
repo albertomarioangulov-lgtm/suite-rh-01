@@ -24,6 +24,7 @@ const users = db.collection('users')
 const employees = db.collection('employees')
 const templates = db.collection('evaluationtemplates')
 const evaluations = db.collection('evaluations')
+const campaigns = db.collection('evaluationcampaigns')
 const tenantConfigs = db.collection('tenantconfigs')
 
 const company = await companies.findOne({ active: true })
@@ -165,15 +166,8 @@ for (const position of allPositions) {
 }
 console.log(`Plantillas creadas/actualizadas: ${templateCount}`)
 
-// --------------------------------------------------- evaluaciones demo
-const PERIOD_LABEL = '2026 – Semestre 1 (demo)'
-const demoEmployees = await employees
-  .find({
-    tenantId: company._id,
-    active: true,
-    document: { $in: ['1000000001', '1000000005', '1000000006'] },
-  })
-  .toArray()
+// --------------------------------------------------- campaña demo
+const CAMPAIGN_NAME = '2026 – Semestre 1 (demo)'
 
 const computeScore = (sections) => {
   let total = 0
@@ -188,60 +182,132 @@ const computeScore = (sections) => {
   return Math.round(total * 100) / 100
 }
 
-const seedEvaluation = (employee, position, status) => {
+const buildSections = (position, employee) => {
   const templateSections = isManagerPosition(position.title)
     ? managerSections
     : baseSections
-  const sections = templateSections.map((section) => ({
+  return templateSections.map((section) => ({
     sectionId: section.id,
     sectionTitle: section.title,
     sectionWeight: section.weight,
     items: section.items.map((item) => ({
       itemId: item.id,
       description: item.description,
-      score: 3 + ((item.order + employee.document.slice(-1)) % 3), // 3-5
+      score: employee
+        ? 3 + ((item.order + employee.document.slice(-1)) % 3) // 3-5
+        : null,
     })),
   }))
-  return {
+}
+
+await campaigns.updateOne(
+  { tenantId: company._id, name: CAMPAIGN_NAME },
+  {
+    $set: {
+      tenantId: company._id,
+      description: 'Campaña demo de evaluación de desempeño (semestre 1).',
+      status: 'active',
+      startDate: new Date('2026-01-01T12:00:00.000Z'),
+      endDate: new Date('2026-06-30T12:00:00.000Z'),
+      dueDate: new Date('2026-07-15T12:00:00.000Z'),
+      scope: 'all',
+      areaIds: [],
+      evaluatorRule: 'manager',
+      allowSelfEvaluation: false,
+      updatedAt: now,
+    },
+    $setOnInsert: { createdAt: now, createdBy: admin?._id ?? null },
+  },
+  { upsert: true },
+)
+const campaign = await campaigns.findOne({
+  tenantId: company._id,
+  name: CAMPAIGN_NAME,
+})
+
+// Genera en borrador para todos los empleados activos con plantilla.
+const activeEmployees = await employees
+  .find({ tenantId: company._id, active: true })
+  .toArray()
+
+const generatedDocs = []
+const skipped = []
+for (const employee of activeEmployees) {
+  const position = allPositions.find((item) => item.title === employee.position)
+  if (!position) {
+    skipped.push(employee.position)
+    continue
+  }
+  generatedDocs.push({
     tenantId: company._id,
     employee: employee._id,
-    evaluator: admin?._id ?? null,
-    periodLabel: PERIOD_LABEL,
+    evaluator: employee.manager ?? admin?._id ?? null,
+    periodLabel: CAMPAIGN_NAME,
     templateId: templateByPosition.get(String(position._id)) ?? null,
     positionId: position._id,
-    status,
-    sections,
-    recommendations:
-      'Mantener el buen desempeño y reforzar la comunicación con el equipo.',
-    actionPlan:
-      'Revisar avances en la siguiente reunión de seguimiento y definir una meta de mejora.',
-    overallScore: computeScore(sections),
-    approvedBy: status === 'approved' ? admin?._id ?? null : null,
-    approvedAt: status === 'approved' ? now : null,
+    status: 'draft',
+    sections: buildSections(position, null),
+    overallScore: 0,
     createdAt: now,
     updatedAt: now,
-  }
+  })
 }
 
-let evaluationCount = 0
-for (const employee of demoEmployees) {
+await evaluations.deleteMany({
+  tenantId: company._id,
+  periodLabel: CAMPAIGN_NAME,
+})
+if (generatedDocs.length) {
+  await evaluations.insertMany(generatedDocs)
+}
+await campaigns.updateOne(
+  { _id: campaign._id },
+  { $set: { generatedCount: generatedDocs.length } },
+)
+console.log(
+  `Campaña "${CAMPAIGN_NAME}": ${generatedDocs.length} evaluaciones generadas` +
+    (skipped.length ? ` · ${skipped.length} sin plantilla` : ''),
+)
+
+// Tres evaluaciones con puntajes (completadas / aprobada) para el dashboard.
+const demoDocuments = ['1000000001', '1000000005', '1000000006']
+let scored = 0
+for (const employee of activeEmployees.filter((item) =>
+  demoDocuments.includes(item.document),
+)) {
   const position = allPositions.find((item) => item.title === employee.position)
   if (!position) continue
-
-  await evaluations.deleteMany({
-    tenantId: company._id,
-    employee: employee._id,
-    periodLabel: PERIOD_LABEL,
-  })
-
   const status = employee.document === '1000000006' ? 'approved' : 'completed'
-  await evaluations.insertOne(seedEvaluation(employee, position, status))
-  evaluationCount++
-  console.log(
-    `Evaluación demo: ${employee.firstName} ${employee.lastName} (${status})`,
+  const sections = buildSections(position, employee)
+  const result = await evaluations.updateOne(
+    {
+      tenantId: company._id,
+      employee: employee._id,
+      periodLabel: CAMPAIGN_NAME,
+    },
+    {
+      $set: {
+        status,
+        sections,
+        overallScore: computeScore(sections),
+        recommendations:
+          'Mantener el buen desempeño y reforzar la comunicación con el equipo.',
+        actionPlan:
+          'Revisar avances en la siguiente reunión de seguimiento y definir una meta de mejora.',
+        approvedBy: status === 'approved' ? admin?._id ?? null : null,
+        approvedAt: status === 'approved' ? now : null,
+        updatedAt: now,
+      },
+    },
   )
+  if (result.modifiedCount > 0) {
+    scored++
+    console.log(
+      `Evaluación con puntaje: ${employee.firstName} ${employee.lastName} (${status})`,
+    )
+  }
 }
-console.log(`Evaluaciones demo: ${evaluationCount}`)
+console.log(`Evaluaciones con puntaje: ${scored}`)
 
 await mongoose.disconnect()
 console.log('Seed de evaluación listo.')
