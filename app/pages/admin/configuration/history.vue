@@ -21,6 +21,15 @@ const actionMeta: Record<string, { icon: string; color: string; label: string }>
   create: { icon: 'mdi-plus-circle-outline', color: 'success', label: 'Creación' },
   update: { icon: 'mdi-pencil-outline', color: 'primary', label: 'Actualización' },
   activate: { icon: 'mdi-play-circle-outline', color: 'warning', label: 'Activación' },
+  delete: { icon: 'mdi-delete-outline', color: 'error', label: 'Eliminación' },
+  assign: { icon: 'mdi-account-plus-outline', color: 'success', label: 'Asignación' },
+  unassign: { icon: 'mdi-account-minus-outline', color: 'warning', label: 'Desasignación' },
+  move: { icon: 'mdi-swap-horizontal', color: 'info', label: 'Movimiento de ciclo' },
+  generate: { icon: 'mdi-auto-fix', color: 'purple', label: 'Generación' },
+  approve: { icon: 'mdi-check-circle-outline', color: 'success', label: 'Aprobación' },
+  pay: { icon: 'mdi-cash', color: 'primary', label: 'Pago' },
+  cancel: { icon: 'mdi-cancel', color: 'error', label: 'Anulación' },
+  recalculate: { icon: 'mdi-refresh', color: 'warning', label: 'Recálculo' },
 }
 
 const meta = (action: string) =>
@@ -35,7 +44,7 @@ const meta = (action: string) =>
   <div>
     <CommonPageHeader
       title="Historial de cambios"
-      subtitle="Auditoría de la configuración de empresa y parámetros legales"
+      subtitle="Auditoría de la configuración: empresa, parámetros legales, ciclos y conceptos de nómina"
     />
 
     <CommonConfigurationTabs />

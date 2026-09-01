@@ -5,11 +5,20 @@ vi.mock('~~/server/models/PayrollCycle', () => ({
 }))
 
 vi.mock('~~/server/models/Employee', () => ({
-  Employee: { countDocuments: vi.fn() },
+  Employee: { countDocuments: vi.fn(), findOne: vi.fn() },
+}))
+
+vi.mock('~~/server/utils/audit', () => ({
+  logAudit: vi.fn(),
 }))
 
 import { PayrollCycle } from '~~/server/models/PayrollCycle'
-import { ensureDefaultCycle } from '~~/server/services/payroll-cycle.service'
+import { Employee } from '~~/server/models/Employee'
+import { logAudit } from '~~/server/utils/audit'
+import {
+  ensureDefaultCycle,
+  moveEmployeeToCycle,
+} from '~~/server/services/payroll-cycle.service'
 
 afterEach(() => {
   vi.clearAllMocks()
@@ -48,5 +57,68 @@ describe('ensureDefaultCycle', () => {
     expect(existing.frequency).toBe('semanal')
     expect(existing.save).toHaveBeenCalled()
     expect(PayrollCycle.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('moveEmployeeToCycle', () => {
+  const sourceId = '64b000000000000000000001'
+  const targetId = '64b000000000000000000002'
+
+  it('mueve al empleado y registra auditoría', async () => {
+    const employee = {
+      _id: 'e1',
+      firstName: 'Ana',
+      lastName: 'López',
+      payrollCycle: sourceId,
+      save: vi.fn().mockResolvedValue(undefined),
+      toJSON: vi.fn().mockReturnValue({ _id: 'e1' }),
+    }
+    ;(Employee.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(employee)
+
+    const result = await moveEmployeeToCycle({
+      tenantId: 't1',
+      employeeId: 'e1',
+      fromCycleId: sourceId,
+      fromCycleName: 'Mensual',
+      fromCycleIsDefault: false,
+      toCycleId: targetId,
+      toCycleName: 'Quincenal',
+      userId: 'u1',
+      userName: 'Admin',
+    })
+
+    expect(String(employee.payrollCycle)).toBe(targetId)
+    expect(employee.save).toHaveBeenCalled()
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'payroll-cycle',
+        action: 'move',
+        entityId: 'e1',
+        userName: 'Admin',
+      }),
+    )
+    expect(result).toEqual({ _id: 'e1' })
+  })
+
+  it('rechaza si el empleado no pertenece al ciclo de origen', async () => {
+    ;(Employee.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      _id: 'e1',
+      firstName: 'Ana',
+      lastName: 'López',
+      payrollCycle: targetId,
+    })
+
+    await expect(
+      moveEmployeeToCycle({
+        tenantId: 't1',
+        employeeId: 'e1',
+        fromCycleId: sourceId,
+        fromCycleName: 'Mensual',
+        fromCycleIsDefault: false,
+        toCycleId: targetId,
+        toCycleName: 'Quincenal',
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 })
+    expect(logAudit).not.toHaveBeenCalled()
   })
 })

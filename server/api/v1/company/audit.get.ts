@@ -9,7 +9,11 @@ export default defineEventHandler(async (event) => {
   await authorize(event, [ROLES.ADMIN, ROLES.MANAGER])
 
   const query = validateWithSchema(paginationSchema, getQuery(event))
-  const filter: QueryFilter<IAuditLog> = { module: 'company' }
+  const filter: QueryFilter<IAuditLog> = {
+    module: {
+      $in: ['company', 'legal-params', 'payroll-cycle', 'payroll-concept'],
+    },
+  }
 
   const total = await AuditLog.countDocuments(filter)
   const items = await AuditLog.find(filter)

@@ -1,9 +1,12 @@
 import mongoose from 'mongoose'
 import { Employee } from '~~/server/models/Employee'
+import { PayrollCycle } from '~~/server/models/PayrollCycle'
 import { User } from '~~/server/models/User'
 import { ROLES } from '~~/shared/auth'
 import { syncUserTenants } from '~~/server/utils/tenant'
 import { authorize } from '~~/server/utils/authorize'
+import { logAudit } from '~~/server/utils/audit'
+import { ensureDefaultCycle } from '~~/server/services/payroll-cycle.service'
 import {
   employeeUpdateSchema,
   mongoIdSchema,
@@ -26,6 +29,9 @@ export default defineEventHandler(async (event) => {
     })
   }
   const previousUser = employee.user ? String(employee.user) : null
+  const previousCycleId = employee.payrollCycle
+    ? String(employee.payrollCycle)
+    : null
 
   const body = await readBody(event)
   const data = validateWithSchema(employeeUpdateSchema, body)
@@ -117,6 +123,34 @@ export default defineEventHandler(async (event) => {
   if (data.active !== undefined) employee.active = data.active
 
   await employee.save()
+
+  // Auditoría del cambio de ciclo (afecta nóminas futuras).
+  const nextCycleId = data.payrollCycle ?? null
+  if (
+    data.payrollCycle !== undefined &&
+    nextCycleId !== previousCycleId
+  ) {
+    const defaultCycle = await ensureDefaultCycle(String(employee.tenantId))
+    const cycleName = async (cycleId: string | null) => {
+      if (!cycleId) return defaultCycle.name
+      const cycle = await PayrollCycle.findById(cycleId)
+      return cycle?.name ?? cycleId
+    }
+    const session = await getUserSession(event)
+    const userName = (session.user as { name?: string } | undefined)?.name
+    await logAudit({
+      module: 'payroll-cycle',
+      action: 'move',
+      entityId: id,
+      userId,
+      userName,
+      description: `Empleado ${employee.firstName} ${employee.lastName} movido de "${await cycleName(previousCycleId)}" a "${await cycleName(nextCycleId)}"`,
+      changes: {
+        from: { cycleId: previousCycleId, name: await cycleName(previousCycleId) },
+        to: { cycleId: nextCycleId, name: await cycleName(nextCycleId) },
+      },
+    })
+  }
 
   // Multi-tenant: sincroniza la lista de empresas de los usuarios afectados.
   if (data.userId) await syncUserTenants(data.userId)

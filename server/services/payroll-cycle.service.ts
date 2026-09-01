@@ -1,5 +1,7 @@
 import { PayrollCycle } from '~~/server/models/PayrollCycle'
 import { Employee } from '~~/server/models/Employee'
+import mongoose from 'mongoose'
+import { logAudit } from '~~/server/utils/audit'
 import {
   PAYROLL_FREQUENCIES,
   type PayrollFrequency,
@@ -67,4 +69,62 @@ export const listCyclesWithCounts = async (tenantId: string) => {
       ),
     })),
   )
+}
+
+/**
+ * Mueve un empleado de su ciclo actual a otro (o al por defecto).
+ * El cambio es prospectivo: solo afecta nóminas futuras; las ya liquidadas
+ * conservan su snapshot de PeriodoNomina. Queda registrado en auditoría.
+ */
+export const moveEmployeeToCycle = async (params: {
+  tenantId: string
+  employeeId: string
+  fromCycleId: string
+  fromCycleName: string
+  fromCycleIsDefault: boolean
+  toCycleId: string | null
+  toCycleName: string
+  userId?: string
+  userName?: string
+}) => {
+  const employee = await Employee.findOne({
+    _id: params.employeeId,
+    tenantId: params.tenantId,
+  })
+  if (!employee) {
+    throw createError({ statusCode: 404, message: 'Empleado no encontrado' })
+  }
+
+  const current = employee.payrollCycle
+    ? String(employee.payrollCycle)
+    : null
+  const belongsToSource =
+    current === params.fromCycleId ||
+    (params.fromCycleIsDefault && current === null)
+  if (!belongsToSource) {
+    throw createError({
+      statusCode: 400,
+      message: 'El empleado no pertenece al ciclo de origen.',
+    })
+  }
+
+  employee.payrollCycle = params.toCycleId
+    ? new mongoose.Types.ObjectId(params.toCycleId)
+    : null
+  await employee.save()
+
+  await logAudit({
+    module: 'payroll-cycle',
+    action: 'move',
+    entityId: params.employeeId,
+    userId: params.userId,
+    userName: params.userName,
+    description: `Empleado ${employee.firstName} ${employee.lastName} movido de "${params.fromCycleName}" a "${params.toCycleName}"`,
+    changes: {
+      from: { cycleId: params.fromCycleId, name: params.fromCycleName },
+      to: { cycleId: params.toCycleId, name: params.toCycleName },
+    },
+  })
+
+  return employee.toJSON()
 }

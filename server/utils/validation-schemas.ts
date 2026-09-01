@@ -454,6 +454,18 @@ export const payrollCycleUpdateSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
 })
 
+export const payrollCycleAssignSchema = z.object({
+  employeeIds: z
+    .array(mongoIdSchema)
+    .min(1, 'Selecciona al menos un empleado'),
+})
+
+export const payrollCycleMoveSchema = z.object({
+  employeeId: mongoIdSchema,
+  /** null = ciclo por defecto de la empresa. */
+  toCycleId: mongoIdSchema.nullable(),
+})
+
 export { z }
 
 const shiftDaySchema = z.object({
