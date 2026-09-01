@@ -6,6 +6,7 @@ import {
   splitDayNightHours,
   splitOvertimeFromEnd,
 } from '~~/shared/utils/datetime-helpers'
+import dayjs from 'dayjs'
 import type { VForm } from 'vuetify/components'
 
 const props = defineProps<{
@@ -81,6 +82,12 @@ const rules = {
   clockOut: [requiredRule('Ingresa la hora de salida')],
 }
 
+const onDateChange = (value: unknown) => {
+  formState.date = value
+    ? dayjs(value as Date | string).format('YYYY-MM-DD')
+    : ''
+}
+
 const preview = computed(() => {
   if (!formState.clockIn || !formState.clockOut) return null
   const start = new Date(formState.clockIn)
@@ -133,11 +140,13 @@ const save = async () => {
 
     <v-row>
       <v-col cols="12" sm="6">
-        <v-text-field
-          v-model="formState.date"
+        <v-date-input
+          :model-value="formState.date ? dayjs(formState.date).toDate() : null"
           label="Fecha"
-          type="date"
+          input-format="YYYY-MM-DD"
+          clearable
           class="mb-3"
+          @update:model-value="onDateChange"
         />
       </v-col>
       <v-col cols="12" sm="6" />
