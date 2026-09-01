@@ -220,7 +220,11 @@ onMounted(() => {
   fetchDashboard()
 })
 
-const onCreated = async (data: { periodStart: string; periodEnd: string }) => {
+const onCreated = async (data: {
+  periodStart: string
+  periodEnd: string
+  cycleId?: string
+}) => {
   try {
     await createPayroll(data)
     snackbar.success('Nómina creada en borrador')

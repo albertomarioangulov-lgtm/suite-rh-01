@@ -43,6 +43,8 @@ export interface IPayrollEntry {
 export interface IPayrollView {
   _id: string
   tenantId: string
+  cycle?: { _id?: string; name?: string; frequency?: string } | string | null
+  periodoNomina?: number
   periodStart?: string
   periodEnd?: string
   status: PayrollStatus
@@ -58,6 +60,7 @@ export interface IPayrollView {
 export interface IPayrollCreatePayload {
   periodStart: string
   periodEnd: string
+  cycleId?: string
 }
 
 /**

@@ -20,6 +20,17 @@ const periodEnd = ref('')
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
 const frequency = ref<PayrollFrequency>('mensual')
 const frequencyLoading = ref(false)
+const cycles = ref<
+  Array<{
+    _id: string
+    name: string
+    frequency: PayrollFrequency
+    isDefault?: boolean
+    employeeCount?: number
+  }>
+>([])
+const cycleId = ref('')
+const cyclesLoading = ref(false)
 const { authFetch } = useAuthState()
 
 const rules = {
@@ -31,18 +42,29 @@ const frequencyLabel = computed(
   () => PAYROLL_FREQUENCIES[frequency.value]?.label ?? 'Manual',
 )
 
+const selectedCycle = computed(
+  () => cycles.value.find((cycle) => cycle._id === cycleId.value) ?? null,
+)
+
 const suggestedPeriod = computed(() =>
-  periodEnd.value
+  periodEnd.value && frequency.value
     ? getPayrollPeriodForDate(frequency.value, periodEnd.value)
     : null,
 )
 
 const applySuggestion = (anchor: string) => {
+  if (!frequency.value) return
   const period = getPayrollPeriodForDate(frequency.value, anchor)
   if (!period) return
   periodStart.value = period.start
   periodEnd.value = period.end
 }
+
+watch(cycleId, () => {
+  if (!selectedCycle.value) return
+  frequency.value = selectedCycle.value.frequency
+  if (periodEnd.value && !periodStart.value) applySuggestion(periodEnd.value)
+})
 
 watch(periodEnd, (value) => {
   // Si el usuario aún no fijó inicio, se completa con la regla de la frecuencia.
@@ -55,18 +77,32 @@ watch(
     if (!open) return
     periodStart.value = ''
     periodEnd.value = ''
+    cycleId.value = ''
     frequencyLoading.value = true
+    cyclesLoading.value = true
     try {
-      const company = await authFetch<{
-        payrollFrequency?: PayrollFrequency
-      }>(API_PATHS.company.config)
+      const [cyclesData, company] = await Promise.all([
+        authFetch<{ items: typeof cycles.value }>(
+          API_PATHS.payrollCycles.list,
+        ),
+        authFetch<{ payrollFrequency?: PayrollFrequency }>(
+          API_PATHS.company.config,
+        ),
+      ])
+      cycles.value = cyclesData.items ?? []
       frequency.value = company.payrollFrequency ?? 'mensual'
     } catch {
       // Sin configuración: se usa mensual como regla por defecto.
+      cycles.value = []
       frequency.value = 'mensual'
     } finally {
       frequencyLoading.value = false
+      cyclesLoading.value = false
     }
+    const defaultCycle =
+      cycles.value.find((cycle) => cycle.isDefault) ?? cycles.value[0]
+    cycleId.value = defaultCycle?._id ?? ''
+    if (defaultCycle) frequency.value = defaultCycle.frequency
     // Sugerencia inicial: período que contiene la fecha actual.
     applySuggestion(new Date().toISOString().slice(0, 10))
   },
@@ -78,6 +114,7 @@ const submit = async () => {
   emit('saved', {
     periodStart: periodStart.value,
     periodEnd: periodEnd.value,
+    cycleId: cycleId.value || undefined,
   })
   emit('update:modelValue', false)
 }
@@ -112,6 +149,18 @@ const submit = async () => {
       <v-divider />
       <v-card-text class="pt-4">
         <v-form ref="formRef" @submit.prevent="submit">
+          <v-select
+            v-model="cycleId"
+            :items="cycles.map((cycle) => ({
+              title: cycle.name,
+              value: cycle._id,
+            }))"
+            label="Ciclo de pago"
+            :loading="cyclesLoading"
+            class="mb-3"
+            hint="Se liquidan los empleados asignados al ciclo"
+            persistent-hint
+          />
           <v-text-field
             v-model="periodStart"
             label="Inicio del período"
@@ -135,6 +184,15 @@ const submit = async () => {
             >
               <v-icon start size="small">mdi-calendar-sync-outline</v-icon>
               Frecuencia: {{ frequencyLabel }}
+            </v-chip>
+            <v-chip
+              v-if="selectedCycle?.employeeCount !== undefined"
+              size="small"
+              variant="tonal"
+              color="info"
+            >
+              <v-icon start size="small">mdi-account-group-outline</v-icon>
+              {{ selectedCycle.employeeCount }} empleado(s)
             </v-chip>
             <span
               v-if="suggestedPeriod"

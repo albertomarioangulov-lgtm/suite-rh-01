@@ -52,6 +52,11 @@ const formState = reactive({
   bankName: props.employee?.bankName ?? '',
   accountType: props.employee?.accountType ?? null,
   accountNumber: props.employee?.accountNumber ?? '',
+  payrollCycle: props.employee?.payrollCycle
+    ? typeof props.employee.payrollCycle === 'object'
+      ? (props.employee.payrollCycle._id ?? '')
+      : props.employee.payrollCycle
+    : '',
   baseSalary: props.employee?.baseSalary ?? 0,
   position: props.employee?.position ?? '',
   department: props.employee?.department
@@ -73,6 +78,7 @@ const departmentOptions = ref<Array<{ title: string; value: string }>>([])
 const positionOptions = ref<Array<{ title: string; value: string; departmentId: string | null }>>([])
 const loadingCatalog = ref(false)
 const managerOptions = ref<Array<{ title: string; value: string }>>([])
+const cycleOptions = ref<Array<{ title: string; value: string }>>([])
 
 onMounted(async () => {
   loadingUsers.value = true
@@ -117,6 +123,20 @@ onMounted(async () => {
     // Catálogo vacío: el campo de cargo sigue permitiendo texto libre.
   } finally {
     loadingCatalog.value = false
+  }
+})
+
+onMounted(async () => {
+  try {
+    const data = await authFetch<{
+      items: Array<{ _id: string; name: string }>
+    }>(API_PATHS.payrollCycles.list)
+    cycleOptions.value = data.items.map((cycle) => ({
+      title: cycle.name,
+      value: cycle._id,
+    }))
+  } catch {
+    // Sin ciclos: la ficha usa el ciclo por defecto de la empresa.
   }
 })
 
@@ -242,6 +262,7 @@ const save = async () => {
       bankName: formState.bankName.trim() || undefined,
       accountType: formState.accountType || undefined,
       accountNumber: formState.accountNumber.trim() || undefined,
+      payrollCycle: formState.payrollCycle || null,
       baseSalary: Number(formState.baseSalary),
       position: formState.position.trim(),
       department: formState.department || null,
@@ -409,6 +430,17 @@ const save = async () => {
           v-model="formState.subEmployeeType"
           :items="subEmployeeTypeOptions"
           label="Subtipo de trabajador (DIAN)"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          v-model="formState.payrollCycle"
+          :items="cycleOptions"
+          label="Ciclo de pago (opcional)"
+          hint="Vacío = ciclo por defecto de la empresa"
+          persistent-hint
+          clearable
           class="mb-3"
         />
       </v-col>

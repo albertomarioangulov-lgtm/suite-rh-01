@@ -21,6 +21,7 @@ export interface IEmployeeView {
   bankName?: string
   accountType?: 'ahorros' | 'corriente' | null
   accountNumber?: string
+  payrollCycle?: { _id?: string; name?: string } | string | null
   baseSalary: number
   position: string
   department?: { _id?: string; name?: string } | string | null
@@ -48,6 +49,7 @@ export interface IEmployeePayload {
   bankName?: string
   accountType?: 'ahorros' | 'corriente' | null
   accountNumber?: string
+  payrollCycle?: string | null
   baseSalary?: number
   position?: string
   department?: string | null

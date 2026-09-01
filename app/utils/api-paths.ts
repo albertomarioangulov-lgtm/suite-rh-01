@@ -80,6 +80,11 @@ export const API_PATHS = {
     create: `${API_BASE}/payroll-concepts`,
     detail: (id: string) => `${API_BASE}/payroll-concepts/${id}`,
   },
+  payrollCycles: {
+    list: `${API_BASE}/payroll-cycles`,
+    create: `${API_BASE}/payroll-cycles`,
+    detail: (id: string) => `${API_BASE}/payroll-cycles/${id}`,
+  },
   absences: {
     list: `${API_BASE}/absences`,
     detail: (id: string) => `${API_BASE}/absences/${id}`,

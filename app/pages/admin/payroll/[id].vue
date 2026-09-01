@@ -44,6 +44,11 @@ const {
 } = usePayrollState()
 
 const role = computed(() => authUser.value?.role)
+const cycleNameOf = computed(() => {
+  const cycle = currentPayroll.value?.cycle
+  if (typeof cycle === 'object' && cycle) return cycle.name ?? ''
+  return typeof cycle === 'string' ? cycle : ''
+})
 const canApprove = computed(
   () => !!role.value && [ROLES.ADMIN, ROLES.MANAGER].includes(role.value),
 )
@@ -432,6 +437,16 @@ const topEmployeesOptions = computed(() => {
         @click="navigateTo('/admin/payroll')"
       />
       <h1 class="text-h6 font-weight-bold mt-0 mb-0">Detalle de nómina</h1>
+      <v-chip
+        v-if="cycleNameOf"
+        size="small"
+        color="primary"
+        variant="tonal"
+        prepend-icon="mdi-calendar-refresh-outline"
+        class="ml-1"
+      >
+        {{ cycleNameOf }}
+      </v-chip>
       <v-spacer />
       <template v-if="currentPayroll">
         <v-btn
