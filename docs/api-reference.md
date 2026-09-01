@@ -1,6 +1,8 @@
 # Referencia de API — Suite RH
 
 > Inventario generado desde `server/api/v1/` (140 endpoints). Base: `/api/v1`; autenticación por cookie de sesión; errores en formato `{ statusCode, message, data? }`.
+>
+> Contexto de la plataforma en [docs/arquitectura-tecnica.md](arquitectura-tecnica.md).
 
 ## Índice por módulo
 

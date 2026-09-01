@@ -121,6 +121,70 @@ Handler de ruta (server/api/v1/...)
    └─ respuesta JSON / XML / binario (ZIP, Excel, PDF)
 ```
 
+### 4.1. Diagrama de arquitectura (alto nivel)
+
+```mermaid
+flowchart TB
+    subgraph Client["Cliente"]
+        B["Navegador"]
+        SPA["Vue 3 + Vuetify 4 (SSR)<br/>páginas · componentes · composables"]
+    end
+
+    subgraph App["Suite RH (Nuxt 4 / Nitro)"]
+        MW["Middlewares Nitro<br/>CORS → CSRF → Sesión → Tenant"]
+        API["API REST /api/v1<br/>140 endpoints (validación Zod + authorize/requireFlag)"]
+        SVC["Servicios de negocio<br/>payroll · attendance · absence · loan · evaluation · cen · analytics"]
+        MOD["Modelos Mongoose<br/>26 modelos con tenantId"]
+        EVT["SSE /api/events<br/>alertas en tiempo real"]
+        FF["Feature flags (TenantConfig)<br/>licenciamiento local / Zentitle"]
+    end
+
+    subgraph Ext["Servicios externos"]
+        DB[(MongoDB Atlas)]
+        MAIL["Brevo<br/>email transaccional"]
+        DIAN["DIAN<br/>DSNE: CUNE · XML · firma XAdES-EPES · VPFE"]
+    end
+
+    B --> SPA
+    SPA -->|"authFetch / $fetch"| MW
+    MW --> API
+    API --> SVC
+    SVC --> MOD
+    MOD --> DB
+    SVC --> FF
+    SVC -->|notificaciones e invitaciones| MAIL
+    SVC -->|CEN firmado / estado| DIAN
+    EVT -->|"SSE push"| SPA
+```
+
+### 4.2. Secuencia de una petición API
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Usuario (navegador)
+    participant N as Nuxt SSR (página)
+    participant MW as Middlewares Nitro
+    participant API as Handler /api/v1
+    participant SVC as Servicio de negocio
+    participant DB as MongoDB
+
+    U->>N: navega a /admin/payroll (SSR)
+    N-->>U: HTML + estado hidratado
+    U->>API: authFetch GET /api/v1/payroll
+    API->>MW: cookie de sesión sellada
+    MW->>MW: CORS + CSRF + sesión deslizante + tenant
+    MW->>API: contexto listo (tenantId)
+    API->>API: authorize(roles) + requireFlag(flag)
+    API->>API: validateWithSchema(zod, query)
+    API->>SVC: listar / crear nómina
+    SVC->>DB: consulta con tenantId aislado
+    DB-->>SVC: documentos
+    SVC-->>API: resultado
+    API-->>U: JSON 200
+    Note over API: errores: 401 sin sesión · 403 rol/flag · 400 validación<br/>404 inexistente · 409 conflicto · 429 rate limit
+```
+
 ### SSR y estado
 
 - Nuxt renderiza SSR; los layouts y páginas evitan hidratación problemática
@@ -213,6 +277,9 @@ sección (`getSectionForPath`) y el botón de ayuda del AppBar abre
 ---
 
 ## 6. Backend y API
+
+> El inventario completo de los 140 endpoints con método, ruta, acceso y
+> descripción está en [docs/api-reference.md](api-reference.md).
 
 ### 6.1. Convenciones REST
 
@@ -415,6 +482,46 @@ negocio llevan `tenantId` para aislamiento multi-tenant.
   del período: recalcular no altera nóminas aprobadas históricas.
 - `Shift.days[].ranges[]` embebe los rangos horarios del turno.
 - `Loan.payments[]` embebe el historial de pagos.
+
+### 9.1. Diagrama de relaciones
+
+```mermaid
+erDiagram
+    COMPANY ||--o{ EMPLOYEE : "emplea"
+    COMPANY ||--o{ DEPARTMENT : "organiza"
+    COMPANY ||--o{ SHIFT : "define"
+    COMPANY ||--o{ PAYROLL : "emite"
+    COMPANY ||--o{ PAYROLL_CYCLE : "configura"
+    COMPANY ||--o{ PAYROLL_CONCEPT : "catálogo"
+    COMPANY ||--o{ LOAN : "registra"
+    COMPANY ||--o{ LEGAL_PARAMS : "aplica"
+    COMPANY ||--o{ EVALUATION_CAMPAIGN : "lanza"
+    COMPANY ||--o{ EVALUATION_CONFIG : "configura"
+    DEPARTMENT ||--o{ POSITION : "agrupa"
+
+    USER ||--o{ COMPANY : "pertenece (tenantIds)"
+    USER }o--o| EMPLOYEE : "ficha vinculada"
+
+    EMPLOYEE }o--o| DEPARTMENT : "área"
+    EMPLOYEE }o--o| POSITION : "cargo"
+    EMPLOYEE }o--o| EMPLOYEE : "reporta a (manager)"
+    EMPLOYEE }o--o| SHIFT : "turno asignado"
+    EMPLOYEE ||--o{ EMPLOYMENT_PERIOD : "historial"
+    EMPLOYEE ||--o{ ATTENDANCE : "registra"
+    EMPLOYEE ||--o{ ABSENCE : "solicita"
+    EMPLOYEE ||--o{ LOAN : "solicita"
+    EMPLOYEE ||--o{ EVALUATION : "recibe"
+    EMPLOYMENT_PERIOD ||--o{ CONTRACT : "documenta"
+
+    PAYROLL_CYCLE ||--o{ PAYROLL : "agrupa"
+    PAYROLL_CYCLE }o--o{ EMPLOYEE : "asignados"
+    PAYROLL ||--o{ EMPLOYEE : "contiene (snapshot)"
+    PAYROLL ||--o| PAYROLL_CYCLE : "ciclo"
+
+    EVALUATION_CAMPAIGN ||--o{ EVALUATION : "genera"
+    EVALUATION_TEMPLATE }o--o| POSITION : "por cargo"
+    EVALUATION_CONFIG ||--o| EVALUATION_CONFIG_HISTORY : "registra cambios"
+```
 
 ---
 
