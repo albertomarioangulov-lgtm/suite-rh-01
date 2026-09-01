@@ -14,6 +14,9 @@ publicada por la DIAN en su sitio oficial.
 - `common/` - esquemas UBL 2.1 requeridos por los XSD anteriores (el esquema principal los importa desde `../common/`). El ZIP de la DIAN omite tres archivos estándar (`UBL-CommonSignatureComponents`, `UBL-SignatureAggregateComponents` y `UBL-SignatureBasicComponents`); se completaron desde el repositorio oficial de OASIS UBL 2.1 (`https://docs.oasis-open.org/ubl/os-UBL-2.1/xsd/common/`).
 - `ejemplos/` - XML de ejemplo validados por la DIAN (V1.0.2).
 
+El anexo técnico oficial (PDF, Resolución 000013 de 2021) está versionado en
+`docs/dian/` para consulta permanente.
+
 ## Validación
 
 Con `xmllint` instalado se puede validar un XML generado contra el esquema oficial:
