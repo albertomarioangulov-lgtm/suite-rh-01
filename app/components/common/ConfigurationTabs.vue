@@ -7,6 +7,8 @@ const activeTab = computed(() => {
   if (route.path.startsWith('/admin/configuration/history')) return 'history'
   if (route.path.startsWith('/admin/configuration/alerts')) return 'alerts'
   if (route.path.startsWith('/admin/configuration/flags')) return 'flags'
+  if (route.path.startsWith('/admin/configuration/payroll-concepts'))
+    return 'payroll-concepts'
   if (route.path.startsWith('/admin/organization')) return 'organization'
   if (route.path.startsWith('/admin/configuration/evaluations')) return 'evaluations'
   return 'company'
@@ -49,6 +51,13 @@ const activeTab = computed(() => {
       to="/admin/configuration/flags"
     >
       Módulos
+    </v-tab>
+    <v-tab
+      value="payroll-concepts"
+      prepend-icon="mdi-tag-multiple-outline"
+      to="/admin/configuration/payroll-concepts"
+    >
+      Conceptos de nómina
     </v-tab>
     <v-tab
       value="organization"

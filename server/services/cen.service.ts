@@ -100,6 +100,12 @@ export interface ICenPayload {
   payrollFrequencyCode?: number
   /** Código DIAN Metodo de pago (tabla 5.3.3.2). Default: 42 = consignación bancaria. */
   paymentMethod?: number
+  /** Conceptos del catálogo aplicados en el período (mapeo a bloques DIAN). */
+  conceptos?: Array<{
+    type: 'devengo' | 'deduccion'
+    dianBlock: string
+    value: number
+  }>
   period: { start: string; end: string }
   daysWorked: number
   /** Tiempo total laborado (días) hasta el fin del período. */
@@ -160,6 +166,10 @@ export const buildCenXml = (data: ICenPayload): string => {
   const environment = data.environment ?? 2
   const paymentMethod = data.paymentMethod ?? 42
   const periodoNomina = data.payrollFrequencyCode ?? 5
+  const conceptoTotal = (block: string) =>
+    (data.conceptos ?? [])
+      .filter((concept) => concept.dianBlock === block)
+      .reduce((sum, concept) => sum + (concept.value || 0), 0)
   const department = municipality.slice(0, 2)
   const [primerApellido, segundoApellido] = splitWords(employee.lastName)
   const [primerNombre, otrosNombres] = splitWords(employee.firstName)
@@ -242,6 +252,14 @@ export const buildCenXml = (data: ICenPayload): string => {
     })
   }
 
+  // Bonificaciones S/NS y comisiones: suma de los conceptos del catálogo
+  // y de los ajustes manuales de la nómina.
+  const bonificacionS =
+    (devengados.bonuses ?? 0) + conceptoTotal('bonificacion_salarial')
+  const bonificacionNS = conceptoTotal('bonificacion_no_salarial')
+  const comisionTotal =
+    (devengados.commissions ?? 0) + conceptoTotal('comision')
+
   const horasExtrasXml = horasExtras
     .map(
       (he) =>
@@ -263,15 +281,24 @@ export const buildCenXml = (data: ICenPayload): string => {
           )
           .join('\n')}\n    </Incapacidades>`
       : '',
-    devengados.bonuses > 0
-      ? `<Bonificaciones>\n      <Bonificacion ${attr('BonificacionS', money(devengados.bonuses))} />\n    </Bonificaciones>`
+    bonificacionS > 0 || bonificacionNS > 0
+      ? `<Bonificaciones>${bonificacionS > 0 ? `\n      <Bonificacion ${attr('BonificacionS', money(bonificacionS))} />` : ''}${bonificacionNS > 0 ? `\n      <Bonificacion ${attr('BonificacionNS', money(bonificacionNS))} />` : ''}\n    </Bonificaciones>`
       : '',
-    devengados.commissions > 0
-      ? `<Comisiones>\n      <Comision>${money(devengados.commissions)}</Comision>\n    </Comisiones>`
+    comisionTotal > 0
+      ? `<Comisiones>\n      <Comision>${money(comisionTotal)}</Comision>\n    </Comisiones>`
       : '',
   ]
     .filter(Boolean)
     .join('\n    ')
+
+  const afcTotal = conceptoTotal('afc')
+  const cooperativaTotal = conceptoTotal('cooperativa')
+  const planComplementarioTotal = conceptoTotal('plan_complementario')
+  const educacionTotal = conceptoTotal('educacion')
+  const reintegroTotal = conceptoTotal('reintegro')
+  const embargoTotal =
+    (deducciones.garnishments ?? 0) + conceptoTotal('embargo')
+  const deudaTotal = (deducciones.loans ?? 0) + conceptoTotal('deuda')
 
   const deduccionesXml = [
     `<Salud ${attr('Porcentaje', '4.00')} ${attr('Deduccion', money(deducciones.employeeHealth))} />`,
@@ -279,11 +306,24 @@ export const buildCenXml = (data: ICenPayload): string => {
     deducciones.sourceRetention > 0
       ? `<RetencionFuente>${money(deducciones.sourceRetention)}</RetencionFuente>`
       : '',
-    deducciones.garnishments > 0
-      ? `<EmbargoFiscal>${money(deducciones.garnishments)}</EmbargoFiscal>`
+    afcTotal > 0 ? `<AFC>${money(afcTotal)}</AFC>` : '',
+    cooperativaTotal > 0
+      ? `<Cooperativa>${money(cooperativaTotal)}</Cooperativa>`
       : '',
-    deducciones.loans > 0
-      ? `<Deuda>${money(deducciones.loans)}</Deuda>`
+    embargoTotal > 0
+      ? `<EmbargoFiscal>${money(embargoTotal)}</EmbargoFiscal>`
+      : '',
+    planComplementarioTotal > 0
+      ? `<PlanComplementarios>${money(planComplementarioTotal)}</PlanComplementarios>`
+      : '',
+    educacionTotal > 0
+      ? `<Educacion>${money(educacionTotal)}</Educacion>`
+      : '',
+    reintegroTotal > 0
+      ? `<Reintegro>${money(reintegroTotal)}</Reintegro>`
+      : '',
+    deudaTotal > 0
+      ? `<Deuda>${money(deudaTotal)}</Deuda>`
       : '',
   ]
     .filter(Boolean)

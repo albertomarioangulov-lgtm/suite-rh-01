@@ -228,6 +228,29 @@ describe('buildCenXml', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b))
   })
 
+  it('mapea los conceptos del catálogo a los bloques DIAN', () => {
+    const xml = buildCenXml({
+      ...payload,
+      conceptos: [
+        { type: 'devengo', dianBlock: 'bonificacion_salarial', value: 100000 },
+        { type: 'devengo', dianBlock: 'bonificacion_no_salarial', value: 50000 },
+        { type: 'deduccion', dianBlock: 'afc', value: 20000 },
+        { type: 'deduccion', dianBlock: 'cooperativa', value: 30000 },
+        { type: 'deduccion', dianBlock: 'educacion', value: 40000 },
+      ],
+    })
+    expect(xml).toContain('<Bonificacion BonificacionS="100000.00" />')
+    expect(xml).toContain('<Bonificacion BonificacionNS="50000.00" />')
+    expect(xml).toContain('<AFC>20000.00</AFC>')
+    expect(xml).toContain('<Cooperativa>30000.00</Cooperativa>')
+    expect(xml).toContain('<Educacion>40000.00</Educacion>')
+    // Orden de las deducciones según el XSD.
+    const order = ['<AFC>', '<Cooperativa>', '<Educacion>', '<Deuda>'].map(
+      (token) => xml.indexOf(token),
+    )
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+  })
+
   it('escapa la razón social en el XML', () => {
     const xml = buildCenXml(payload)
     expect(xml).toContain('RazonSocial="A &amp; B SAS"')

@@ -75,6 +75,11 @@ export const API_PATHS = {
     employeeHistory: (employeeId: string) =>
       `${API_BASE}/payroll/employee/${employeeId}`,
   },
+  payrollConcepts: {
+    list: `${API_BASE}/payroll-concepts`,
+    create: `${API_BASE}/payroll-concepts`,
+    detail: (id: string) => `${API_BASE}/payroll-concepts/${id}`,
+  },
   absences: {
     list: `${API_BASE}/absences`,
     detail: (id: string) => `${API_BASE}/absences/${id}`,

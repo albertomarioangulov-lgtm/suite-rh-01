@@ -38,11 +38,44 @@ import {
   calculateDeducciones,
   calculateDevengados,
   calculateSeguridadSocial,
+  computeConceptValues,
   validatePayrollPeriod,
 } from '~~/server/services/payroll.service'
 
 afterEach(() => {
   vi.clearAllMocks()
+})
+
+describe('computeConceptValues', () => {
+  it('suma conceptos fijos y porcentuales por tipo', () => {
+    const result = computeConceptValues(
+      [
+        {
+          type: 'devengo',
+          code: 'BONO',
+          name: 'Bono navideño',
+          dianBlock: 'bonificacion_salarial',
+          calculation: 'fijo',
+          value: 50000,
+        },
+        {
+          type: 'deduccion',
+          code: 'AFC1',
+          name: 'AFC 1%',
+          dianBlock: 'afc',
+          calculation: 'porcentaje',
+          value: 1,
+        },
+      ],
+      2000000,
+    )
+    expect(result.devengoTotal).toBe(50000)
+    expect(result.deduccionTotal).toBe(20000)
+    expect(result.items).toHaveLength(2)
+    expect(result.items[0].value).toBe(50000)
+    expect(result.items[1].value).toBe(20000)
+    expect(result.items[1].baseValue).toBe(1)
+  })
 })
 
 describe('calculateDevengados', () => {

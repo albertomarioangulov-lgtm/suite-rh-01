@@ -10,6 +10,7 @@ import { Company } from '~~/server/models/Company'
 import { Employee } from '~~/server/models/Employee'
 import { LegalParams } from '~~/server/models/LegalParams'
 import { Payroll } from '~~/server/models/Payroll'
+import { PayrollConcept } from '~~/server/models/PayrollConcept'
 import { Alert } from '~~/server/models/Alert'
 import { getLoanDeductionForPeriod, recordLoanPayments } from '~~/server/services/loan.service'
 import { publishAlert } from '~~/server/utils/alert-stream'
@@ -38,6 +39,63 @@ export const COMPENSATION_FUND_RATE = 0.04
 export const DEFAULT_BASE_HOURS_PER_MONTH = 240
 
 const round2 = (value: number) => Math.round(value * 100) / 100
+
+export interface IConceptValue {
+  type: 'devengo' | 'deduccion'
+  code: string
+  name: string
+  dianBlock: string
+  value: number
+  calculation: 'fijo' | 'porcentaje'
+  baseValue: number
+}
+
+/**
+ * Calcula el valor de los conceptos del catálogo sobre el salario base del
+ * período. Fijo = valor por período; porcentaje = % del salario base.
+ */
+export const computeConceptValues = (
+  concepts: Array<{
+    type: string
+    code: string
+    name: string
+    dianBlock: string
+    calculation: string
+    value: number
+  }>,
+  baseSalary: number,
+): { items: IConceptValue[]; devengoTotal: number; deduccionTotal: number } => {
+  let devengoTotal = 0
+  let deduccionTotal = 0
+  const items: IConceptValue[] = (concepts ?? []).map((concept) => {
+    const amount =
+      concept.calculation === 'porcentaje'
+        ? round2((concept.value / 100) * baseSalary)
+        : round2(concept.value)
+    if (concept.type === 'devengo') devengoTotal += amount
+    else deduccionTotal += amount
+    return {
+      type: concept.type as IConceptValue['type'],
+      code: concept.code,
+      name: concept.name,
+      dianBlock: concept.dianBlock,
+      value: amount,
+      calculation: concept.calculation as IConceptValue['calculation'],
+      baseValue: concept.value,
+    }
+  })
+  return {
+    items,
+    devengoTotal: round2(devengoTotal),
+    deduccionTotal: round2(deduccionTotal),
+  }
+}
+
+/** Conceptos activos del catálogo de una empresa. */
+const getActiveConcepts = (tenantId: string) =>
+  PayrollConcept.find({ tenantId, active: true })
+    .sort({ type: 1, sortOrder: 1 })
+    .lean()
 
 interface ILegalParamsInput {
   uvtValue?: number
@@ -301,6 +359,14 @@ export const buildEmployeeEntry = async (
     garnishments?: number
     loans?: number
   } = {},
+  concepts: Array<{
+    type: string
+    code: string
+    name: string
+    dianBlock: string
+    calculation: string
+    value: number
+  }> = [],
 ) => {
   const devengados = await calculateDevengados(
     employee,
@@ -333,12 +399,16 @@ export const buildEmployeeEntry = async (
     params,
     arlClass,
   )
+  const conceptSummary = computeConceptValues(concepts, devengados.baseSalary)
+  devengados.total = round2(devengados.total + conceptSummary.devengoTotal)
+  deducciones.total = round2(deducciones.total + conceptSummary.deduccionTotal)
 
   return {
     employee: employee._id,
     devengados,
     deducciones,
     seguridadSocial,
+    conceptos: conceptSummary.items,
     totalToPay: Math.max(0, round2(devengados.total - deducciones.total)),
   }
 }
@@ -387,6 +457,7 @@ export const createPayroll = async (
   await validatePayrollPeriod(String(company._id), data.periodStart, data.periodEnd)
 
   const params = await getCurrentLegalParams()
+  const concepts = await getActiveConcepts(String(company._id))
   const employees = await getActiveEmployees(String(company._id))
   const entries = []
 
@@ -398,6 +469,8 @@ export const createPayroll = async (
         data.periodEnd,
         params.toJSON(),
         employee.arlRiskClass,
+        {},
+        concepts,
       ),
     )
   }
@@ -457,6 +530,7 @@ export const recalculatePayroll = async (id: string, userId?: string) => {
   }
 
   const params = await getCurrentLegalParams()
+  const concepts = await getActiveConcepts(String(payroll.tenantId))
   const entries = []
   for (const entry of payroll.employees ?? []) {
     const employee = await Employee.findById(entry.employee)
@@ -468,6 +542,8 @@ export const recalculatePayroll = async (id: string, userId?: string) => {
         payroll.periodEnd,
         params.toJSON(),
         employee.arlRiskClass,
+        {},
+        concepts,
       ),
     )
   }
@@ -641,6 +717,7 @@ export const updatePayroll = async (
   }
 
   const params = await getCurrentLegalParams()
+  const concepts = await getActiveConcepts(String(payroll.tenantId))
   for (const adjustment of data.employees ?? []) {
     const entry = (payroll.employees ?? []).find(
       (item) => String(item.employee) === adjustment.employeeId,
@@ -660,6 +737,7 @@ export const updatePayroll = async (
         garnishments: adjustment.garnishments,
         loans: adjustment.loans,
       },
+      concepts,
     )
     const index = payroll.employees.findIndex(
       (item) => String(item.employee) === adjustment.employeeId,

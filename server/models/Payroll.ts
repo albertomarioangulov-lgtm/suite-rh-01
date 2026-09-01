@@ -54,6 +54,25 @@ const PayrollEmployeeSchema = new Schema(
       compensationFund: { type: Number, default: 0 },
       total: { type: Number, default: 0 },
     },
+    /** Desglose de conceptos del catálogo aplicados en el período. */
+    conceptos: {
+      type: [
+        {
+          type: { type: String, enum: ['devengo', 'deduccion'], required: true },
+          code: { type: String, required: true },
+          name: { type: String, required: true },
+          dianBlock: { type: String, required: true },
+          value: { type: Number, required: true },
+          calculation: {
+            type: String,
+            enum: ['fijo', 'porcentaje'],
+            default: 'fijo',
+          },
+          baseValue: { type: Number, default: 0 },
+        },
+      ],
+      default: [],
+    },
     totalToPay: { type: Number, default: 0 },
     observations: { type: String, trim: true },
   },

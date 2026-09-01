@@ -5,6 +5,10 @@ import { ROLES } from '~~/shared/auth'
 import { getTenantId, requireFlag } from '~~/server/utils/tenant'
 import { FEATURE_FLAGS } from '~~/shared/feature-flags'
 import { buildCenXml } from '~~/server/services/cen.service'
+import {
+  PAYROLL_FREQUENCIES,
+  type PayrollFrequency,
+} from '~~/shared/payroll-period'
 
 /** Códigos DIAN de TipoContrato (tabla 5.5.2 del anexo técnico). */
 const CONTRACT_TYPE_CODES: Record<string, number> = {
@@ -12,16 +16,6 @@ const CONTRACT_TYPE_CODES: Record<string, number> = {
   fixed: 1,
   work_labor: 3,
   intern: 4,
-}
-
-/** Códigos DIAN de PeriodoNomina (tabla 5.5.1 del anexo técnico). */
-const PAYROLL_FREQUENCY_CODES: Record<string, number> = {
-  semanal: 1,
-  decenal: 2,
-  catorcenal: 3,
-  quincenal: 4,
-  mensual: 5,
-  otro: 6,
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -133,8 +127,15 @@ export default defineEventHandler(async (event) => {
     softwareSC: company.softwareSC || undefined,
     environment: (company.cenEnvironment ?? 2) as 1 | 2,
     payrollFrequencyCode:
-      PAYROLL_FREQUENCY_CODES[company.payrollFrequency ?? 'mensual'] ?? 5,
+      PAYROLL_FREQUENCIES[
+        (company.payrollFrequency as PayrollFrequency) ?? 'mensual'
+      ]?.dianCode ?? 5,
     paymentMethod: company.paymentMethod ?? 42,
+    conceptos: (entry.conceptos ?? []).map((concept) => ({
+      type: concept.type as 'devengo' | 'deduccion',
+      dianBlock: concept.dianBlock,
+      value: concept.value ?? 0,
+    })),
     company: {
       name: company.name,
       nit: company.nit,

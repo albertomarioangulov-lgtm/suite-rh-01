@@ -1,4 +1,10 @@
 import { z } from 'zod'
+import { PAYROLL_FREQUENCY_VALUES } from '~~/shared/payroll-period'
+import {
+  DIAN_CONCEPT_BLOCKS,
+  PAYROLL_CONCEPT_BLOCK_VALUES,
+  PAYROLL_CONCEPT_CALCULATIONS,
+} from '~~/shared/payroll-concepts'
 import { ROLES } from '~~/shared/auth'
 import {
   ABSENCE_STATUS,
@@ -102,9 +108,7 @@ export const companyUpdateSchema = z.object({
       'El código de municipio debe tener 5 dígitos (DIVIPOLA)',
     )
     .optional(),
-  payrollFrequency: z
-    .enum(['semanal', 'decenal', 'catorcenal', 'quincenal', 'mensual', 'otro'])
-    .optional(),
+  payrollFrequency: z.enum(PAYROLL_FREQUENCY_VALUES).optional(),
   cenEnvironment: z.union([z.literal(1), z.literal(2)]).optional(),
   softwareId: z.string().trim().max(80).optional(),
   softwareSC: z.string().trim().max(200).optional(),
@@ -388,6 +392,48 @@ export const loanUpdateSchema = z.object({
 
 export const loanPaymentSchema = z.object({
   amount: z.number().positive('El abono debe ser mayor a 0'),
+})
+
+export const payrollConceptSchema = z
+  .object({
+    type: z.enum(['devengo', 'deduccion']),
+    code: z
+      .string()
+      .trim()
+      .min(1, 'El código es requerido')
+      .max(30, 'Máximo 30 caracteres')
+      .transform((value) => value.toUpperCase()),
+    name: z.string().trim().min(1, 'El nombre es requerido'),
+    description: z.string().trim().max(300).optional(),
+    dianBlock: z.enum(PAYROLL_CONCEPT_BLOCK_VALUES),
+    calculation: z.enum(PAYROLL_CONCEPT_CALCULATIONS).default('fijo'),
+    value: z.number().nonnegative('El valor debe ser mayor o igual a 0'),
+    active: z.boolean().default(true),
+    sortOrder: z.number().int().min(0).default(0),
+  })
+  .refine(
+    (data) => DIAN_CONCEPT_BLOCKS[data.dianBlock].type === data.type,
+    {
+      message: 'El bloque DIAN no corresponde al tipo de concepto',
+      path: ['dianBlock'],
+    },
+  )
+
+export const payrollConceptUpdateSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1, 'El código es requerido')
+    .max(30, 'Máximo 30 caracteres')
+    .transform((value) => value.toUpperCase())
+    .optional(),
+  name: z.string().trim().min(1, 'El nombre es requerido').optional(),
+  description: z.string().trim().max(300).optional(),
+  dianBlock: z.enum(PAYROLL_CONCEPT_BLOCK_VALUES).optional(),
+  calculation: z.enum(PAYROLL_CONCEPT_CALCULATIONS).optional(),
+  value: z.number().nonnegative('El valor debe ser mayor o igual a 0').optional(),
+  active: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
 })
 
 export { z }
