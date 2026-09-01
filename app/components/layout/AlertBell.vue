@@ -92,7 +92,10 @@ const alertTarget = (alert: IBellAlert) => {
       : ''
   }
   if (alert.module === 'absence' && employeeName(alert)) {
-    return `/admin/employees/${String((alert.employee as { _id: string })._id)}`
+    const role = user.value?.role
+    return role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role)
+      ? `/admin/employees/${String((alert.employee as { _id: string })._id)}`
+      : '/portal'
   }
   return '/admin/attendance'
 }

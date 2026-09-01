@@ -16,6 +16,7 @@ definePageMeta({
 
 const { authFetch } = useAuthState()
 const snackbar = useSnackbarState()
+const { generating: pdfGenerating, downloadReceipt } = usePayrollReceiptPdf()
 
 interface ISelfProfile {
   id: string
@@ -159,6 +160,44 @@ const selectedEntry = computed<IPayrollEntry | null>(() => {
   }
 })
 
+const downloadRecibo = async () => {
+  const payroll = selectedPayroll.value
+  if (!payroll || !profile.value) return
+  const zeros = () => ({ baseSalary: 0, daysWorked: 0, transportAllowance: 0, overtimeDay: 0, overtimeNight: 0, nightSurcharge: 0, bonuses: 0, commissions: 0, total: 0 })
+  await downloadReceipt(
+    {
+      devengados: payroll.devengados ?? (zeros() as IPayrollEntry['devengados']),
+      deducciones: payroll.deducciones ?? {
+        employeeHealth: 0,
+        employeePension: 0,
+        sourceRetention: 0,
+        garnishments: 0,
+        loans: 0,
+        total: 0,
+      },
+      seguridadSocial: payroll.seguridadSocial ?? {
+        employerHealth: 0,
+        employerPension: 0,
+        arl: 0,
+        sena: 0,
+        icbf: 0,
+        compensationFund: 0,
+        total: 0,
+      },
+      totalToPay: payroll.totalToPay,
+      periodLabel: `${formatDate(payroll.periodStart, 'DD/MM/YYYY')} – ${formatDate(payroll.periodEnd, 'DD/MM/YYYY')}`,
+      days: payroll.days,
+      status: payroll.status,
+    },
+    {
+      firstName: profile.value.firstName,
+      lastName: profile.value.lastName,
+      document: profile.value.document,
+      position: profile.value.position,
+    },
+  )
+}
+
 // ---- Solicitar permiso ----
 const requestOpen = ref(false)
 const saving = ref(false)
@@ -217,7 +256,25 @@ const absenceHeaders = [
   { title: 'Días', key: 'days', sortable: true },
   { title: 'Estado', key: 'status' },
   { title: 'Observaciones', key: 'observations' },
+  { title: '', key: 'actions', sortable: false, align: 'end' },
 ]
+
+const cancellingId = ref<string | null>(null)
+
+const cancelAbsence = async (item: ISelfAbsence) => {
+  const label = ABSENCE_TYPE_LABELS[item.type as AbsenceType] ?? item.type
+  if (!confirm(`¿Cancelar la solicitud de ${label}?`)) return
+  cancellingId.value = item._id
+  try {
+    await authFetch(API_PATHS.self.absenceCancel(item._id), { method: 'DELETE' })
+    snackbar.success('Solicitud cancelada')
+    await load()
+  } catch {
+    snackbar.error('No se pudo cancelar la solicitud.')
+  } finally {
+    cancellingId.value = null
+  }
+}
 </script>
 
 <template>
@@ -396,6 +453,19 @@ const absenceHeaders = [
               {{ item.observations || '—' }}
             </span>
           </template>
+          <template #[`item.actions`]="{ item }">
+            <v-btn
+              v-if="item.status === 'pending'"
+              icon="mdi-close-circle-outline"
+              size="small"
+              variant="text"
+              color="error"
+              title="Cancelar solicitud"
+              :loading="cancellingId === item._id"
+              :disabled="cancellingId !== null"
+              @click="cancelAbsence(item)"
+            />
+          </template>
           <template #no-data>
             Aún no has solicitado permisos.
           </template>
@@ -431,6 +501,18 @@ const absenceHeaders = [
         </v-card-item>
         <v-divider />
         <PayrollEmployeeBreakdown v-if="selectedEntry" :entry="selectedEntry" />
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            color="primary"
+            variant="tonal"
+            prepend-icon="mdi-download"
+            :loading="pdfGenerating"
+            @click="downloadRecibo"
+          >
+            Descargar PDF
+          </v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
 

@@ -50,6 +50,7 @@ export const API_PATHS = {
     me: `${API_BASE}/self/me`,
     payroll: `${API_BASE}/self/payroll`,
     absences: `${API_BASE}/self/absences`,
+    absenceCancel: (id: string) => `${API_BASE}/self/absences/${id}`,
   },
   shifts: {
     list: `${API_BASE}/shifts`,

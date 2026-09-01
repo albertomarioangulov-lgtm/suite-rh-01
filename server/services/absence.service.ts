@@ -528,7 +528,9 @@ export const approveAbsence = async (id: string, userId?: string) => {
   absence.approvedAt = new Date()
   await absence.save()
 
-  const employee = await Employee.findById(absence.employee).select('firstName lastName')
+  const employee = await Employee.findById(absence.employee).select(
+    'firstName lastName user',
+  )
   await createAbsenceAlert({
     tenantId: absence.tenantId,
     employee: absence.employee,
@@ -537,6 +539,32 @@ export const approveAbsence = async (id: string, userId?: string) => {
     targetRoles: ['admin', 'hr', 'manager'],
     message: `Ausencia aprobada: ${employee?.firstName ?? ''} ${employee?.lastName ?? ''} · ${absenceTypeLabel(absence.type as string)} (${absence.days} día(s)).`,
   })
+
+  // Notificación personal al empleado (campana de su cuenta).
+  if (employee?.user) {
+    const alert = await Alert.create({
+      tenantId: absence.tenantId,
+      user: employee.user as never,
+      employee: absence.employee,
+      module: 'absence',
+      type: 'info',
+      message: `Tu solicitud de ${absenceTypeLabel(absence.type as string)} fue aprobada.`,
+      alertKey: 'absence_approved',
+      targetRoles: [],
+    })
+    publishAlert({
+      _id: String(alert._id),
+      employee: String(absence.employee),
+      user: String(employee.user),
+      module: 'absence',
+      type: 'info',
+      message: alert.message,
+      alertKey: 'absence_approved',
+      targetRoles: [],
+      read: false,
+      createdAt: alert.createdAt,
+    })
+  }
 
   return absence.toJSON()
 }
@@ -557,7 +585,9 @@ export const rejectAbsence = async (
   absence.approvedAt = new Date()
   await absence.save()
 
-  const employee = await Employee.findById(absence.employee).select('firstName lastName')
+  const employee = await Employee.findById(absence.employee).select(
+    'firstName lastName user',
+  )
   await createAbsenceAlert({
     tenantId: absence.tenantId,
     employee: absence.employee,
@@ -567,6 +597,32 @@ export const rejectAbsence = async (
     targetRoles: ['admin', 'hr', 'manager'],
     message: `Ausencia rechazada: ${employee?.firstName ?? ''} ${employee?.lastName ?? ''} · ${absenceTypeLabel(absence.type as string)}. Motivo: ${reason}`,
   })
+
+  // Notificación personal al empleado (campana de su cuenta).
+  if (employee?.user) {
+    const alert = await Alert.create({
+      tenantId: absence.tenantId,
+      user: employee.user as never,
+      employee: absence.employee,
+      module: 'absence',
+      type: 'warning',
+      message: `Tu solicitud de ${absenceTypeLabel(absence.type as string)} fue rechazada. Motivo: ${reason}`,
+      alertKey: 'absence_rejected',
+      targetRoles: [],
+    })
+    publishAlert({
+      _id: String(alert._id),
+      employee: String(absence.employee),
+      user: String(employee.user),
+      module: 'absence',
+      type: 'warning',
+      message: alert.message,
+      alertKey: 'absence_rejected',
+      targetRoles: [],
+      read: false,
+      createdAt: alert.createdAt,
+    })
+  }
 
   return absence.toJSON()
 }

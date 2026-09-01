@@ -30,7 +30,14 @@ export default defineEventHandler(async (event) => {
   }
   if (isStaff) {
     baseFilter.user = userId
-    baseFilter.alertKey = { $in: ['evaluation_pending', 'evaluation_self'] }
+    baseFilter.alertKey = {
+      $in: [
+        'evaluation_pending',
+        'evaluation_self',
+        'absence_approved',
+        'absence_rejected',
+      ],
+    }
   } else {
     const config = await AlertConfig.getOrCreate(tenantId)
     const enabledKeys = (config.rules ?? [])
