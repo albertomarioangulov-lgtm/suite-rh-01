@@ -51,6 +51,20 @@ const CompanySchema = new Schema(
     attendanceClosedThrough: { type: String, default: '', trim: true },
     /** Código de municipio DIAN del domicilio principal (para el CEN). */
     municipalityCode: { type: String, default: '', trim: true },
+    /** Frecuencia de pago de nómina (PeriodoNomina en el DSNE). */
+    payrollFrequency: {
+      type: String,
+      enum: ['semanal', 'decenal', 'catorcenal', 'quincenal', 'mensual', 'otro'],
+      default: 'mensual',
+    },
+    /** Ambiente del DSNE: 1 producción, 2 pruebas (habilitación). */
+    cenEnvironment: { type: Number, enum: [1, 2], default: 2 },
+    /** Identificador del software registrado ante la DIAN (SoftwareID). */
+    softwareId: { type: String, trim: true, default: '' },
+    /** Código de seguridad del software ante la DIAN (SoftwareSC). */
+    softwareSC: { type: String, trim: true, default: '' },
+    /** Método de pago del DSNE (tabla 5.3.3.2). Default: 42 = consignación bancaria. */
+    paymentMethod: { type: Number, default: 42 },
     /** Numeración correlativa anual del CEN por empleador. */
     cenSequence: { type: Number, default: 0 },
     cenSequenceYear: { type: Number, default: 0 },

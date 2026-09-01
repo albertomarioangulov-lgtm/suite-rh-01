@@ -91,6 +91,25 @@ describe('buildCenXml', () => {
     expect(xml).toContain('TipoXML="102"')
     expect(xml).toContain('EncripCUNE="CUNE-SHA384"')
     expect(xml).toContain('TipoMoneda="COP"')
+    expect(xml).toContain('PeriodoNomina="5"')
+    expect(xml).toContain('Ambiente="2"')
+    expect(xml).toContain('Metodo="42"')
+  })
+
+  it('respeta la configuración DIAN de la empresa en el documento', () => {
+    const xml = buildCenXml({
+      ...payload,
+      environment: 1,
+      softwareId: 'SW-001',
+      softwareSC: 'SC-ABC123',
+      payrollFrequencyCode: 4,
+      paymentMethod: 45,
+    })
+    expect(xml).toContain('PeriodoNomina="4"')
+    expect(xml).toContain('Ambiente="1"')
+    expect(xml).toContain('SoftwareID="SW-001"')
+    expect(xml).toContain('SoftwareSC="SC-ABC123"')
+    expect(xml).toContain('Metodo="45"')
   })
 
   it('incluye secuencia, período, empleador con DV y municipio', () => {

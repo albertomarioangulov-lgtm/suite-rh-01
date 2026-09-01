@@ -25,6 +25,11 @@ const formState = reactive({
   logo: props.company?.logo ?? '',
   address: props.company?.address ?? '',
   municipalityCode: props.company?.municipalityCode ?? '',
+  payrollFrequency: props.company?.payrollFrequency ?? 'mensual',
+  cenEnvironment: props.company?.cenEnvironment ?? 2,
+  softwareId: props.company?.softwareId ?? '',
+  softwareSC: props.company?.softwareSC ?? '',
+  paymentMethod: props.company?.paymentMethod ?? 42,
   taxRegime: props.company?.taxRegime ?? 'simplified',
   maxWeeklyHours: props.company?.workSchedule.maxWeeklyHours ?? 42,
   minDailyHours: props.company?.workSchedule.minDailyHours ?? 6,
@@ -64,6 +69,31 @@ const regimeOptions = [
   { title: 'Común', value: 'common' },
 ]
 
+const payrollFrequencyOptions = [
+  { title: 'Semanal', value: 'semanal' },
+  { title: 'Decenal', value: 'decenal' },
+  { title: 'Catorcenal', value: 'catorcenal' },
+  { title: 'Quincenal', value: 'quincenal' },
+  { title: 'Mensual', value: 'mensual' },
+  { title: 'Otro', value: 'otro' },
+]
+
+const cenEnvironmentOptions = [
+  { title: 'Pruebas (habilitación)', value: 2 },
+  { title: 'Producción', value: 1 },
+]
+
+const paymentMethodOptions = [
+  { title: 'Instrumento no definido', value: 1 },
+  { title: 'Efectivo', value: 10 },
+  { title: 'Cheque', value: 20 },
+  { title: 'Consignación bancaria', value: 42 },
+  { title: 'Transferencia crédito bancario', value: 45 },
+  { title: 'Tarjeta crédito', value: 48 },
+  { title: 'Tarjeta débito', value: 49 },
+  { title: 'CATS – Nequi, Daviplata, etc.', value: 98 },
+]
+
 const rules = {
   name: [requiredRule('Ingresa el nombre de la empresa')],
   nit: [requiredRule('Ingresa el NIT'), validNIT()],
@@ -89,6 +119,11 @@ const save = async () => {
       logo: formState.logo,
       address: formState.address.trim(),
       municipalityCode: formState.municipalityCode.trim(),
+      payrollFrequency: formState.payrollFrequency,
+      cenEnvironment: Number(formState.cenEnvironment),
+      softwareId: formState.softwareId.trim() || undefined,
+      softwareSC: formState.softwareSC.trim() || undefined,
+      paymentMethod: Number(formState.paymentMethod),
       taxRegime: formState.taxRegime,
       workSchedule: {
         maxWeeklyHours: Number(formState.maxWeeklyHours),
@@ -195,6 +230,62 @@ const save = async () => {
           item-title="title"
           item-value="value"
           class="mb-3"
+        />
+      </v-col>
+    </v-row>
+
+    <h2 class="text-subtitle-1 font-weight-bold mb-2">
+      Nómina electrónica (DIAN)
+    </h2>
+    <v-row>
+      <v-col cols="12" sm="6" md="4">
+        <v-select
+          v-model="formState.payrollFrequency"
+          :items="payrollFrequencyOptions"
+          label="Frecuencia de pago de nómina"
+          item-title="title"
+          item-value="value"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" md="4">
+        <v-select
+          v-model="formState.cenEnvironment"
+          :items="cenEnvironmentOptions"
+          label="Ambiente del DSNE"
+          item-title="title"
+          item-value="value"
+          class="mb-3"
+          hint="Usa pruebas hasta que el software esté habilitado"
+          persistent-hint
+        />
+      </v-col>
+      <v-col cols="12" sm="6" md="4">
+        <v-select
+          v-model="formState.paymentMethod"
+          :items="paymentMethodOptions"
+          label="Método de pago"
+          item-title="title"
+          item-value="value"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          v-model="formState.softwareId"
+          label="Identificador del software (DIAN)"
+          class="mb-3"
+          hint="SoftwareID asignado al registrar el software ante la DIAN"
+          persistent-hint
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          v-model="formState.softwareSC"
+          label="Código de seguridad del software (DIAN)"
+          class="mb-3"
+          hint="SoftwareSC generado por la DIAN"
+          persistent-hint
         />
       </v-col>
     </v-row>

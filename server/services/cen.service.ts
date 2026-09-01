@@ -94,8 +94,12 @@ export interface ICenPayload {
   softwareId?: string
   /** Código de seguridad del software ante la DIAN (obligatorio en producción; M3). */
   softwareSC?: string
-  /** Ambiente de destino (tabla 5.1.1): 1 producción, 2 pruebas. */
+  /** Ambiente de destino (tabla 5.1.1): 1 producción, 2 pruebas. Default: 2. */
   environment?: 1 | 2
+  /** Código DIAN PeriodoNomina (tabla 5.5.1): 1 semanal … 5 mensual, 6 otro. */
+  payrollFrequencyCode?: number
+  /** Código DIAN Metodo de pago (tabla 5.3.3.2). Default: 42 = consignación bancaria. */
+  paymentMethod?: number
   period: { start: string; end: string }
   daysWorked: number
   /** Tiempo total laborado (días) hasta el fin del período. */
@@ -153,7 +157,9 @@ export const buildCenXml = (data: ICenPayload): string => {
   }
 
   const dv = company.dv ?? computeNitDv(company.nit)
-  const environment = data.environment ?? 1
+  const environment = data.environment ?? 2
+  const paymentMethod = data.paymentMethod ?? 42
+  const periodoNomina = data.payrollFrequencyCode ?? 5
   const department = municipality.slice(0, 2)
   const [primerApellido, segundoApellido] = splitWords(employee.lastName)
   const [primerNombre, otrosNombres] = splitWords(employee.firstName)
@@ -161,7 +167,7 @@ export const buildCenXml = (data: ICenPayload): string => {
     ? `${data.prefix}${data.sequence}`
     : String(data.sequence)
   const pagoXml = [
-    `<Pago ${attr('Forma', '1')} ${attr('Metodo', '42')}`,
+    `<Pago ${attr('Forma', '1')} ${attr('Metodo', paymentMethod)}`,
     employee.bankName ? ` ${attr('Banco', employee.bankName)}` : '',
     employee.accountType ? ` ${attr('TipoCuenta', employee.accountType)}` : '',
     employee.accountNumber
@@ -291,7 +297,7 @@ export const buildCenXml = (data: ICenPayload): string => {
   <LugarGeneracionXML ${attr('Pais', 'CO')} ${attr('DepartamentoEstado', department)} ${attr('MunicipioCiudad', municipality)} ${attr('Idioma', 'es')} />
   <ProveedorXML ${attr('NIT', company.nit)} ${attr('DV', dv)} ${attr('SoftwareID', data.softwareId ?? '')} ${attr('SoftwareSC', data.softwareSC ?? '')} />
   <CodigoQR></CodigoQR>
-  <InformacionGeneral ${attr('Version', 'V1.0: Documento Soporte de Pago de Nómina Electrónica')} ${attr('Ambiente', environment)} ${attr('TipoXML', '102')} ${attr('CUNE', '')} ${attr('EncripCUNE', 'CUNE-SHA384')} ${attr('FechaGen', data.generationDate)} ${attr('HoraGen', data.generationTime)} ${attr('PeriodoNomina', '5')} ${attr('TipoMoneda', 'COP')} ${attr('TRM', '0')} />
+  <InformacionGeneral ${attr('Version', 'V1.0: Documento Soporte de Pago de Nómina Electrónica')} ${attr('Ambiente', environment)} ${attr('TipoXML', '102')} ${attr('CUNE', '')} ${attr('EncripCUNE', 'CUNE-SHA384')} ${attr('FechaGen', data.generationDate)} ${attr('HoraGen', data.generationTime)} ${attr('PeriodoNomina', periodoNomina)} ${attr('TipoMoneda', 'COP')} ${attr('TRM', '0')} />
   <Empleador ${attr('RazonSocial', company.name)} ${attr('NIT', company.nit)} ${attr('DV', dv)} ${attr('Pais', 'CO')} ${attr('DepartamentoEstado', department)} ${attr('MunicipioCiudad', municipality)} ${attr('Direccion', company.address ?? '')} />
   <Trabajador ${attr('TipoTrabajador', employee.employeeType ?? '01')} ${attr('SubTipoTrabajador', employee.subEmployeeType ?? '00')} ${attr('AltoRiesgoPension', 'false')} ${attr('TipoDocumento', employee.documentType ?? 13)} ${attr('NumeroDocumento', employee.document)} ${attr('PrimerApellido', primerApellido)}${segundoApellido ? ` ${attr('SegundoApellido', segundoApellido)}` : ''} ${attr('PrimerNombre', primerNombre)}${otrosNombres ? ` ${attr('OtrosNombres', otrosNombres)}` : ''} ${attr('LugarTrabajoPais', 'CO')} ${attr('LugarTrabajoDepartamentoEstado', department)} ${attr('LugarTrabajoMunicipioCiudad', municipality)} ${attr('LugarTrabajoDireccion', company.address ?? '')} ${attr('SalarioIntegral', employee.salarioIntegral ?? false)} ${attr('TipoContrato', employee.contractTypeCode ?? 2)} ${attr('Sueldo', money(employee.baseSalary))} ${attr('CodigoTrabajador', employee.document)} />
   ${pagoXml}

@@ -14,6 +14,16 @@ const CONTRACT_TYPE_CODES: Record<string, number> = {
   intern: 4,
 }
 
+/** Códigos DIAN de PeriodoNomina (tabla 5.5.1 del anexo técnico). */
+const PAYROLL_FREQUENCY_CODES: Record<string, number> = {
+  semanal: 1,
+  decenal: 2,
+  catorcenal: 3,
+  quincenal: 4,
+  mensual: 5,
+  otro: 6,
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
@@ -119,6 +129,12 @@ export default defineEventHandler(async (event) => {
     sequence,
     generationDate,
     generationTime,
+    softwareId: company.softwareId || undefined,
+    softwareSC: company.softwareSC || undefined,
+    environment: (company.cenEnvironment ?? 2) as 1 | 2,
+    payrollFrequencyCode:
+      PAYROLL_FREQUENCY_CODES[company.payrollFrequency ?? 'mensual'] ?? 5,
+    paymentMethod: company.paymentMethod ?? 42,
     company: {
       name: company.name,
       nit: company.nit,

@@ -6,6 +6,26 @@ defineProps<{
 }>()
 
 const regimeLabel = (regime: string) => (regime === 'common' ? 'Común' : 'Simplificado')
+
+const frequencyLabel: Record<string, string> = {
+  semanal: 'Semanal',
+  decenal: 'Decenal',
+  catorcenal: 'Catorcenal',
+  quincenal: 'Quincenal',
+  mensual: 'Mensual',
+  otro: 'Otro',
+}
+
+const methodLabel: Record<number, string> = {
+  1: 'Instrumento no definido',
+  10: 'Efectivo',
+  20: 'Cheque',
+  42: 'Consignación bancaria',
+  45: 'Transferencia crédito bancario',
+  48: 'Tarjeta crédito',
+  49: 'Tarjeta débito',
+  98: 'CATS – Nequi, Daviplata, etc.',
+}
 </script>
 
 <template>
@@ -42,6 +62,26 @@ const regimeLabel = (regime: string) => (regime === 'common' ? 'Común' : 'Simpl
         title="Municipio (DSNE)"
         :subtitle="company.municipalityCode || 'No configurado — requerido para el XML DIAN'"
         prepend-icon="mdi-map-marker-radius-outline"
+      />
+      <v-list-item
+        title="Frecuencia de nómina (DSNE)"
+        :subtitle="frequencyLabel[company.payrollFrequency] ?? company.payrollFrequency"
+        prepend-icon="mdi-calendar-month-outline"
+      />
+      <v-list-item
+        title="Ambiente DSNE"
+        :subtitle="company.cenEnvironment === 1 ? 'Producción' : 'Pruebas (habilitación)'"
+        prepend-icon="mdi-cloud-outline"
+      />
+      <v-list-item
+        title="Método de pago (DSNE)"
+        :subtitle="methodLabel[company.paymentMethod ?? 42] ?? 'Consignación bancaria'"
+        prepend-icon="mdi-cash-multiple"
+      />
+      <v-list-item
+        title="Software DIAN"
+        :subtitle="company.softwareId && company.softwareSC ? `${company.softwareId} · SC configurado` : 'No configurado — requerido antes de transmitir a la DIAN'"
+        prepend-icon="mdi-application-cog-outline"
       />
       <v-list-item
         title="Jornada"

@@ -38,6 +38,11 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       logo: data.logo || '',
       address: data.address || '',
       municipalityCode: data.municipalityCode || '',
+      payrollFrequency: data.payrollFrequency || 'mensual',
+      cenEnvironment: data.cenEnvironment ?? 2,
+      softwareId: data.softwareId || '',
+      softwareSC: data.softwareSC || '',
+      paymentMethod: data.paymentMethod ?? 42,
       taxRegime: data.taxRegime || 'simplified',
       workSchedule: {
         maxWeeklyHours: 42,
@@ -74,6 +79,41 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       after: data.municipalityCode,
     }
     company.municipalityCode = data.municipalityCode
+  }
+  if (data.payrollFrequency !== undefined) {
+    changes.payrollFrequency = {
+      before: company.payrollFrequency,
+      after: data.payrollFrequency,
+    }
+    company.payrollFrequency = data.payrollFrequency
+  }
+  if (data.cenEnvironment !== undefined) {
+    changes.cenEnvironment = {
+      before: company.cenEnvironment,
+      after: data.cenEnvironment,
+    }
+    company.cenEnvironment = data.cenEnvironment
+  }
+  if (data.softwareId !== undefined) {
+    changes.softwareId = {
+      before: company.softwareId,
+      after: data.softwareId,
+    }
+    company.softwareId = data.softwareId ?? ''
+  }
+  if (data.softwareSC !== undefined) {
+    changes.softwareSC = {
+      before: company.softwareSC,
+      after: data.softwareSC,
+    }
+    company.softwareSC = data.softwareSC ?? ''
+  }
+  if (data.paymentMethod !== undefined) {
+    changes.paymentMethod = {
+      before: company.paymentMethod,
+      after: data.paymentMethod,
+    }
+    company.paymentMethod = data.paymentMethod
   }
   if (data.taxRegime !== undefined) {
     changes.taxRegime = { before: company.taxRegime, after: data.taxRegime }

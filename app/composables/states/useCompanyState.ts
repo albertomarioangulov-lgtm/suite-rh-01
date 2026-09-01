@@ -8,6 +8,14 @@ export interface ICompanyView {
   address: string
   /** Código DIVIPOLA (5 dígitos) del municipio, requerido para el DSNE. */
   municipalityCode?: string
+  /** Frecuencia de pago de nómina (PeriodoNomina en el DSNE). */
+  payrollFrequency: 'semanal' | 'decenal' | 'catorcenal' | 'quincenal' | 'mensual' | 'otro'
+  /** Ambiente del DSNE: 1 producción, 2 pruebas (habilitación). */
+  cenEnvironment: 1 | 2
+  softwareId?: string
+  softwareSC?: string
+  /** Método de pago del DSNE (tabla 5.3.3.2). */
+  paymentMethod?: number
   taxRegime: 'simplified' | 'common'
   workSchedule: {
     maxWeeklyHours: number
