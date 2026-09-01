@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import type { ICompanyView } from '~/composables/states/useCompanyState'
-import { betweenRule, requiredRule, validNIT, validTime } from '~/utils/validation-rules'
+import {
+  betweenRule,
+  requiredRule,
+  validMunicipalityCode,
+  validNIT,
+  validTime,
+} from '~/utils/validation-rules'
 import type { VForm } from 'vuetify/components'
 
 const props = defineProps<{
@@ -18,6 +24,7 @@ const formState = reactive({
   nit: props.company?.nit ?? '',
   logo: props.company?.logo ?? '',
   address: props.company?.address ?? '',
+  municipalityCode: props.company?.municipalityCode ?? '',
   taxRegime: props.company?.taxRegime ?? 'simplified',
   maxWeeklyHours: props.company?.workSchedule.maxWeeklyHours ?? 42,
   minDailyHours: props.company?.workSchedule.minDailyHours ?? 6,
@@ -61,6 +68,7 @@ const rules = {
   name: [requiredRule('Ingresa el nombre de la empresa')],
   nit: [requiredRule('Ingresa el NIT'), validNIT()],
   address: [requiredRule('Ingresa la dirección')],
+  municipalityCode: [validMunicipalityCode()],
   maxWeeklyHours: [requiredRule('Ingresa las horas semanales'), betweenRule(1, 168)],
   minDailyHours: [requiredRule('Ingresa las horas mínimas'), betweenRule(1, 24)],
   maxDailyHours: [requiredRule('Ingresa las horas máximas'), betweenRule(1, 24)],
@@ -80,6 +88,7 @@ const save = async () => {
       nit: formState.nit.trim(),
       logo: formState.logo,
       address: formState.address.trim(),
+      municipalityCode: formState.municipalityCode.trim(),
       taxRegime: formState.taxRegime,
       workSchedule: {
         maxWeeklyHours: Number(formState.maxWeeklyHours),
@@ -160,7 +169,7 @@ const save = async () => {
           />
         </div>
       </v-col>
-      <v-col cols="12" md="8">
+      <v-col cols="12" md="6">
         <v-text-field
           v-model="formState.address"
           label="Dirección"
@@ -168,7 +177,17 @@ const save = async () => {
           class="mb-3"
         />
       </v-col>
-      <v-col cols="12" md="4">
+      <v-col cols="12" sm="6" md="3">
+        <v-text-field
+          v-model="formState.municipalityCode"
+          label="Código municipio (DIVIPOLA)"
+          :rules="rules.municipalityCode"
+          hint="5 dígitos, ej. 11001 (Bogotá)"
+          persistent-hint
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
         <v-select
           v-model="formState.taxRegime"
           :items="regimeOptions"

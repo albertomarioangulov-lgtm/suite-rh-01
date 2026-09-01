@@ -39,6 +39,11 @@ const regimeLabel = (regime: string) => (regime === 'common' ? 'Común' : 'Simpl
         prepend-icon="mdi-file-document-outline"
       />
       <v-list-item
+        title="Municipio (DSNE)"
+        :subtitle="company.municipalityCode || 'No configurado — requerido para el XML DIAN'"
+        prepend-icon="mdi-map-marker-radius-outline"
+      />
+      <v-list-item
         title="Jornada"
         :subtitle="`Máx ${company.workSchedule.maxWeeklyHours} h/semana · ${company.workSchedule.minDailyHours}–${company.workSchedule.maxDailyHours} h/día`"
         prepend-icon="mdi-clock-outline"

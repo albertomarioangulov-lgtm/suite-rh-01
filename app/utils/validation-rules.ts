@@ -34,6 +34,12 @@ export const validNIT =
     return (digits.length >= 8 && digits.length <= 10) || message
   }
 
+/** Valida el código de municipio DIVIPOLA (5 dígitos, vacío permitido). */
+export const validMunicipalityCode =
+  (message = 'Código de municipio inválido (5 dígitos)'): ValidationRule =>
+  (value) =>
+    !value || /^\d{5}$/.test(String(value)) || message
+
 /** Valida el formato de hora HH:mm (24h). */
 export const validTime =
   (message = 'Hora inválida (HH:mm)'): ValidationRule =>

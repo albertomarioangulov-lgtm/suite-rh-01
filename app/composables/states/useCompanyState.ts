@@ -6,6 +6,8 @@ export interface ICompanyView {
   nit: string
   logo?: string
   address: string
+  /** Código DIVIPOLA (5 dígitos) del municipio, requerido para el DSNE. */
+  municipalityCode?: string
   taxRegime: 'simplified' | 'common'
   workSchedule: {
     maxWeeklyHours: number
