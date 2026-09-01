@@ -12,7 +12,11 @@ onMounted(async () => {
 
 <template>
   <LayoutAppBar v-model:drawer="drawer" />
-  <LayoutNavDrawer v-model="drawer" />
+  <!-- El drawer se renderiza solo en cliente: evita mismatches de
+       hidratación de Vuetify entre SSR (permanente) y cliente (temporal). -->
+  <ClientOnly>
+    <LayoutNavDrawer v-model="drawer" />
+  </ClientOnly>
 
   <v-main>
     <v-container fluid class="ma-0 pa-2">

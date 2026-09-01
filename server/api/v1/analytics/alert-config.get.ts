@@ -1,11 +1,14 @@
 import { AlertConfig } from '~~/server/models/AlertConfig'
-import { ROLES } from '~~/shared/auth'
-import { authorize } from '~~/server/utils/authorize'
+import { requireAuth } from '~~/server/utils/authorize'
 import { getTenantId } from '~~/server/utils/tenant'
 
-/** Configuración de alertas de la empresa (qué tipos y para qué roles). */
+/**
+ * Configuración de alertas de la empresa (intervalo de polling y reglas).
+ * Acceso: cualquier usuario autenticado — la campana necesita el intervalo
+ * para funcionar también para empleados (avisos de evaluación/ausencias).
+ */
 export default defineEventHandler(async (event) => {
-  await authorize(event, [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR])
+  await requireAuth(event)
 
   const tenantId = await getTenantId(event)
   if (!tenantId) {
