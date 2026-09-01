@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { requiredRule } from '~/utils/validation-rules'
+import {
+  getPayrollPeriodForDate,
+  PAYROLL_FREQUENCIES,
+  type PayrollFrequency,
+} from '~~/shared/payroll-period'
+import { API_PATHS } from '~/utils/api-paths'
 import type { VForm } from 'vuetify/components'
 
 const emit = defineEmits<{
@@ -7,16 +13,64 @@ const emit = defineEmits<{
   (e: 'saved', data: { periodStart: string; periodEnd: string }): void
 }>()
 
-defineProps<{ modelValue: boolean }>()
+const props = defineProps<{ modelValue: boolean }>()
 
 const periodStart = ref('')
 const periodEnd = ref('')
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
+const frequency = ref<PayrollFrequency>('mensual')
+const frequencyLoading = ref(false)
+const { authFetch } = useAuthState()
 
 const rules = {
   periodStart: [requiredRule('Ingresa la fecha de inicio')],
   periodEnd: [requiredRule('Ingresa la fecha de fin')],
 }
+
+const frequencyLabel = computed(
+  () => PAYROLL_FREQUENCIES[frequency.value]?.label ?? 'Manual',
+)
+
+const suggestedPeriod = computed(() =>
+  periodEnd.value
+    ? getPayrollPeriodForDate(frequency.value, periodEnd.value)
+    : null,
+)
+
+const applySuggestion = (anchor: string) => {
+  const period = getPayrollPeriodForDate(frequency.value, anchor)
+  if (!period) return
+  periodStart.value = period.start
+  periodEnd.value = period.end
+}
+
+watch(periodEnd, (value) => {
+  // Si el usuario aún no fijó inicio, se completa con la regla de la frecuencia.
+  if (value && !periodStart.value) applySuggestion(value)
+})
+
+watch(
+  () => props.modelValue,
+  async (open) => {
+    if (!open) return
+    periodStart.value = ''
+    periodEnd.value = ''
+    frequencyLoading.value = true
+    try {
+      const company = await authFetch<{
+        payrollFrequency?: PayrollFrequency
+      }>(API_PATHS.company.config)
+      frequency.value = company.payrollFrequency ?? 'mensual'
+    } catch {
+      // Sin configuración: se usa mensual como regla por defecto.
+      frequency.value = 'mensual'
+    } finally {
+      frequencyLoading.value = false
+    }
+    // Sugerencia inicial: período que contiene la fecha actual.
+    applySuggestion(new Date().toISOString().slice(0, 10))
+  },
+)
 
 const submit = async () => {
   const { valid } = (await formRef.value?.validate()) ?? { valid: true }
@@ -72,6 +126,35 @@ const submit = async () => {
             :rules="rules.periodEnd"
             class="mb-3"
           />
+          <div class="d-flex align-center ga-2 mb-3">
+            <v-chip
+              size="small"
+              variant="tonal"
+              color="primary"
+              :loading="frequencyLoading"
+            >
+              <v-icon start size="small">mdi-calendar-sync-outline</v-icon>
+              Frecuencia: {{ frequencyLabel }}
+            </v-chip>
+            <span
+              v-if="suggestedPeriod"
+              class="text-caption text-medium-emphasis"
+            >
+              Período sugerido: {{ suggestedPeriod.start }} al
+              {{ suggestedPeriod.end }}
+            </span>
+          </div>
+          <v-btn
+            v-if="suggestedPeriod"
+            variant="text"
+            size="small"
+            color="primary"
+            prepend-icon="mdi-calendar-arrow-right"
+            class="mb-3"
+            @click="applySuggestion(periodEnd)"
+          >
+            Usar período sugerido
+          </v-btn>
           <div class="d-flex justify-end ga-2">
             <v-btn
               variant="text"
