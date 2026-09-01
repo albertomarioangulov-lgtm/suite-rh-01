@@ -1,16 +1,21 @@
 # Documentación oficial DIAN - Nómina Electrónica (DSNE)
 
 Material de referencia oficial publicado por la DIAN, versionado en el
-repositorio para consulta permanente (el archivo original se descarga desde
-el sitio de la DIAN; la carpeta temporal no persiste entre sesiones).
+repositorio para consulta permanente.
 
 ## Contenido
 
-- `Anexo-Tecnico-DSNE-V1.0.pdf` - Anexo Técnico "Documento Soporte de Pago de
-  Nómina Electrónica – Versión 1.0" (Resolución 000013 de 2021), 269 páginas.
+- `anexo-tecnico-dsne-v1.0.md` - Transcripción de texto limpia del Anexo
+  Técnico "Documento Soporte de Pago de Nómina Electrónica – Versión 1.0"
+  (Resolución 000013 de 2021), 269 páginas (0.8 MB, búsqueda por sección).
   Incluye la especificación del CUNE (numeral 8.1), el SoftwareSC (numeral
   8.3), las tablas de códigos (tipo de documento, trabajador, contrato,
-  forma/método de pago, etc.) y las reglas de validación.
+  forma/método de pago, etc.) y las reglas de validación (DC01-DC60).
+
+> El PDF oficial con formato original (tablas e imágenes) no se versiona en el
+> repositorio para no inflarlo (~6.6 MB). Se descarga desde la Caja de
+> Herramientas de Nómina Electrónica de la DIAN cuando se necesita consultar
+> el original.
 
 ## Fuente
 
@@ -32,3 +37,7 @@ el sitio de la DIAN; la carpeta temporal no persiste entre sesiones).
 - El `SoftwareSC` es por documento: SHA-384(SoftwareID + PIN + Numero), no un
   valor fijo. El PIN del software es privado (no viaja en el XML) y se
   configura en la empresa para el cálculo del CUNE y del SoftwareSC.
+- La firma XAdES-EPES (M4) está implementada: el DSNE se envuelve en
+  `Ext:UBLExtensions` y se firma con la política oficial de la DIAN
+  (`politicadefirmav2.pdf`, SHA-256 `dMoMvtcG5aIzgYo0tIsSQeVJBDnUnfSOfBpxXrmor0Y=`).
+  Ver `server/services/cen-signature.service.ts` y `server/assets/dian/README.md`.
