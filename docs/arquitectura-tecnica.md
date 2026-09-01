@@ -337,6 +337,7 @@ prueba).
 /payroll/[id]/approve|pay|cancel`, `POST /payroll/[id]/recalculate`, `GET
 /payroll/[id]/employees|history`, `GET /payroll/[id]/cen`,
 `GET /payroll/[id]/cen-all` (ZIP), `GET /payroll/[id]/nomina-export` (Excel),
+`POST /payroll/[id]/transmit` (SendNominaSync; `?dryRun=true` = vista previa),
 `GET /payroll/dashboard`, `GET /payroll/employee/[employeeId]`, `GET/POST
 /payroll-cycles`, `PUT/DELETE /payroll-cycles/[id]`, `POST
 /payroll-cycles/[id]/assign|move`, `GET /payroll-cycles/[id]/candidates|employees`,
@@ -708,8 +709,52 @@ de 2021); el XSD oficial V1.0.6 y los esquemas UBL están versionados en
   **firmado**; sin certificado, el XML sale sin firma (útil mientras el
   software no está habilitado). `GET /company/cen-test-cert` descarga un
   `.p12` de prueba para desarrollo.
-- Pendiente (fase siguiente): transmisión al VPFE vía SOAP/WS-Security y
-  generación de imagen QR.
+- Pendiente: validación de la transmisión contra el ambiente de habilitación
+  real de la DIAN (requiere credenciales) y generación de la imagen QR.
+
+### 11.5. Transmisión al VPFE (`server/services/dian-transport.service.ts`)
+
+Operación **SendNominaSync** del servicio WcfDianCustomerServices (numeral 9
+del anexo):
+
+- El DSNE firmado se empaqueta en un `.zip` (nombre `z{NIT}a{consecutivo}.zip`,
+  numeral 3.5) y se envía en `wcf:contentFile` (base64) dentro de un sobre
+  SOAP 1.2.
+- WS-Security 1.0 (X.509 Token Profile 1.1): `wsu:Timestamp`,
+  `wsse:BinarySecurityToken` y `ds:Signature` que cubre **Timestamp, wsa:To,
+  wsa:Action y el Body** (exc-c14n con InclusiveNamespaces `wsa soap wcf`,
+  RSA-SHA256).
+- El envío usa TLS 1.2 con **autenticación mutua** (certificado del cliente
+  extraído del .p12 como `key`/`cert` del agente HTTPS).
+- Respuesta: `SendNominaSyncResult` con `IsValid`, `StatusCode`,
+  `StatusDescription`, `StatusMessage`, `ErrorMessage[]` (reglas de
+  validación), `XmlDocumentKey` (CUNE) y `XmlBase64Bytes`
+  (ApplicationResponse).
+- `POST /api/v1/payroll/[id]/transmit` transmite por empleado (o todos) y
+  guarda el historial en `Payroll.dianTransmissions`; `?dryRun=true`
+  construye el sobre SOAP sin enviarlo (útil antes de tener credenciales de
+  habilitación). Endpoint por ambiente: `vpfe-hab.dian.gov.co` (2) /
+  `vpfe.dian.gov.co` (1).
+
+### 11.6. Flujo del DSNE: de la nómina a la DIAN
+
+```mermaid
+flowchart LR
+    A["Nómina aprobada<br/>(Payroll + empleados)"] --> B["buildCenXml<br/>NominaIndividual + CUNE + SoftwareSC + QR"]
+    B --> C["Firma XAdES-EPES<br/>UBLExtensions + ds:Signature (3 referencias)"]
+    C --> D["Verificación<br/>digests + RSA + XSD"]
+    D --> E["ZIP<br/>z{NIT}a{consecutivo}.zip"]
+    E --> F["SOAP 1.2 + WS-Security<br/>SendNominaSync (Timestamp, To, Action, Body)"]
+    F --> G["VPFE DIAN<br/>habilitación | producción"]
+    G --> H["SendNominaSyncResult<br/>IsValid · StatusCode · Errores · XmlDocumentKey"]
+    H --> I["Historial<br/>Payroll.dianTransmissions"]
+    H -->|"rechazado"| J["Revisar errores NIE*<br/>y re-transmitir"]
+```
+
+> La transmisión requiere el certificado .p12 configurado. Mientras no haya
+> credenciales de habilitación, se puede: descargar el XML firmado
+> (`cen`/`cen-all`) para subirlo a la web de la DIAN, o usar `?dryRun=true`
+> para inspeccionar el sobre SOAP.
 
 ---
 
@@ -846,6 +891,79 @@ En `scripts/`:
   Herramientas de Nómina Electrónica (XSD V1.0.6).
 - Ley 527 de 1999 y Decreto 2364 de 2012 (firma digital).
 - ONAC Circular 03-2016 (certificados digitales).
+
+---
+
+## 21. Diagramas por módulo
+
+### 21.1. Ciclo de vida de una nómina
+
+```mermaid
+stateDiagram-v2
+    [*] --> Borrador : crear (con ciclo y empleados)
+    Borrador --> Borrador : ajustes / recálculo / rechazo de aprobación
+    Borrador --> Aprobada : aprobar (admin/manager)
+    Aprobada --> Borrador : cancelar aprobación
+    Aprobada --> Pagada : pagar (admin)
+    Pagada --> [*] : fin del ciclo
+    Borrador --> Cancelada : anular
+    Aprobada --> Cancelada : anular
+    Cancelada --> [*]
+```
+
+> En cada transición se valida el rol (`approvePayroll` = admin/manager,
+> `payPayroll` = admin), se audita y se bloquean cambios sobre nóminas
+> pagadas/canceladas. Desde `Aprobada`/`Pagada` se genera el DSNE (CEN
+> firmado) y se transmite al VPFE.
+
+### 21.2. Registro y cálculo de asistencia
+
+```mermaid
+flowchart TD
+    A["Registro (manual o por turno)<br/>clockIn / clockOut"] --> B["Cálculo automático<br/>attendance.service.calculateAttendanceFields"]
+    B --> C{"¿Tardanza?"}
+    C -->|"sí (fuera de tolerancia)"| D["isLate + lateMinutes<br/>(tolerancia congelada en el registro)"]
+    C -->|"no"| E["Horas normales"]
+    B --> F{"¿Horas > jornada ordinaria?"}
+    F -->|"sí"| G["Extras diurnas (25%) / nocturnas (75%)<br/>con límites diarios y semanales"]
+    F -->|"no"| H["Sin extras"]
+    B --> I{"¿Horario nocturno?"}
+    I -->|"sí"| J["Recargo nocturno (35%)"]
+    E --> K["Estado pendiente"]
+    G --> K
+    J --> K
+    K -->|"aprobar"| L["Aprobada"]
+    K -->|"rechazar"| M["Rechazada"]
+    L --> N["Cierre mensual<br/>(no se recalcula si cambia la tolerancia)"]
+```
+
+### 21.3. Flujo de ausencias e incapacidades
+
+```mermaid
+flowchart TD
+    A["Solicitud (portal o RRHH)"] --> B["Cálculo<br/>días efectivos + días pagados por empresa"]
+    B --> C{"Tipo de ausencia"}
+    C -->|"permiso / vacaciones / calamidad"| D["Días calendario o hábiles<br/>según el tipo"]
+    C -->|"incapacidad común"| E["Días 1-2: empresa · día 3+: EPS"]
+    C -->|"incapacidad laboral"| F["ARL"]
+    D --> G["Aprobación / rechazo<br/>(con motivo + auditoría)"]
+    E --> G
+    F --> G
+    G -->|"aprobada"| H["Impacto en nómina<br/>(días pagados / valores)"]
+    G -->|"rechazada"| I["Notificación al solicitante"]
+```
+
+### 21.4. Campaña de evaluación de desempeño
+
+```mermaid
+flowchart LR
+    A["Configuración del módulo<br/>(EvaluationConfig + historial)"] --> B["Campaña<br/>alcance: todas | áreas · regla: manager | manual · autoevaluación"]
+    B --> C["Generar evaluaciones (lote, idempotente)<br/>plantilla activa por cargo"]
+    C --> D["Evaluadores / autoevaluación<br/>+ alertas de aviso"]
+    D --> E["Respuestas por sección<br/>computeOverallScore"]
+    E --> F["Aprobar (bloquea edición)<br/>+ PDF profesional"]
+    F --> G["Estadísticas de campaña<br/>completadas vs. pendientes"]
+```
 
 ---
 

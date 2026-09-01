@@ -60,3 +60,20 @@ exige un certificado de una entidad de certificación abierta avalada por la ONA
 
 La firma se verifica en las pruebas con una implementación independiente
 (libxml2 C14N + OpenSSL) además de la validación XSD con `xmllint`.
+
+## Transmisión al VPFE (SendNominaSync)
+
+`server/services/dian-transport.service.ts` implementa el envío del DSNE
+firmado a la DIAN (numeral 9 del anexo):
+
+- ZIP con el XML firmado (`z{NIT}a{consecutivo}.zip`) en `wcf:contentFile`
+  (base64) sobre SOAP 1.2.
+- WS-Security 1.0 (X.509 Token Profile 1.1): Timestamp, BinarySecurityToken
+  y firma sobre Timestamp, wsa:To, wsa:Action y el Body (exc-c14n,
+  RSA-SHA256). Envío con TLS mutuo usando el certificado del .p12.
+- `POST /api/v1/payroll/[id]/transmit` (con `?dryRun=true` para vista previa
+  sin enviar); el resultado se guarda en `Payroll.dianTransmissions`.
+- La respuesta se parsea (`IsValid`, `StatusCode`, `ErrorMessage[]`,
+  `XmlDocumentKey`/CUNE, `XmlBase64Bytes`/ApplicationResponse).
+
+El sobre SOAP se verifica en las pruebas con libxml2 (exc-c14n) + OpenSSL.

@@ -237,15 +237,16 @@
 | **PUT** | `/api/v1/payroll/:id` | admin/ manager/ hr | Actualiza nómina (ajustes). |
 | **PUT** | `/api/v1/payroll/:id/approve` | admin/ manager | Aprueba la nómina (borrador → aprobada). |
 | **PUT** | `/api/v1/payroll/:id/cancel` | admin | Cancela la nómina. |
-| **GET** | `/api/v1/payroll/:id/cen` | autenticado · flag `payroll` | Descarga el DSNE XML de un empleado (firmado si hay certificado). |
-| **GET** | `/api/v1/payroll/:id/cen-all` | autenticado · flag `payroll` | Descarga todos los DSNE de la nómina en ZIP. |
+| **GET** | `/api/v1/payroll/:id/cen` | admin/ manager/ hr · flag `payroll` | Descarga el DSNE XML de un empleado (firmado si hay certificado). |
+| **GET** | `/api/v1/payroll/:id/cen-all` | admin/ manager/ hr · flag `payroll` | Descarga todos los DSNE de la nómina en ZIP. |
 | **GET** | `/api/v1/payroll/:id/employees` | admin/ manager/ hr | Empleados de la nómina con desglose. |
 | **GET** | `/api/v1/payroll/:id/history` | admin/ manager/ hr | Historial de la nómina (estados y auditoría). |
-| **GET** | `/api/v1/payroll/:id/nomina-export` | autenticado · flag `payroll` | Planilla Excel de nómina electrónica para la web DIAN. |
+| **GET** | `/api/v1/payroll/:id/nomina-export` | admin/ manager/ hr · flag `payroll` | Planilla Excel de nómina electrónica para la web DIAN. |
+| **POST** | `/api/v1/payroll/:id/transmit` | admin/ manager/ hr · flag `payroll` | Transmite el DSNE firmado al VPFE (SendNominaSync). `?dryRun=true` construye el sobre SOAP sin enviar. |
 | **PUT** | `/api/v1/payroll/:id/pay` | admin | Marca la nómina como pagada. |
 | **POST** | `/api/v1/payroll/:id/recalculate` | admin/ manager/ hr | Recalcula la nómina con los datos actuales. |
-| **GET** | `/api/v1/payroll/dashboard` | autenticado · flag `payroll` | Dashboard de nómina (serie mensual, borradores). |
-| **GET** | `/api/v1/payroll/employee/:employeeId` | autenticado | Historial de nómina de un empleado. |
+| **GET** | `/api/v1/payroll/dashboard` | admin/ manager/ hr · flag `payroll` | Dashboard de nómina (serie mensual, borradores). |
+| **GET** | `/api/v1/payroll/employee/:employeeId` | admin/ manager/ hr · flag `payroll` | Historial de nómina de un empleado. |
 ## Organización — Cargos `/positions`
 
 | Método | Ruta | Acceso | Descripción |
