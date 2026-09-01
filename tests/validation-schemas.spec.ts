@@ -151,6 +151,8 @@ describe('companyUpdateSchema', () => {
 describe('legalParamsSchema', () => {
   const valid = {
     uvtValue: 47000,
+    minimumWage: 1750905,
+    transportAllowance: 249095,
     healthPercentages: { employee: 4, employer: 8.5 },
     pensionPercentages: { employee: 4, employer: 12 },
     validFrom: '2026-01-01',
