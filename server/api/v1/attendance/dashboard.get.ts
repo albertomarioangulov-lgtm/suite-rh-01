@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
       overtimeDay: 0,
       overtimeNight: 0,
       nightSurcharge: 0,
+      lateCount: 0,
     },
     statusCounts: { pending: 0, approved: 0, rejected: 0 },
     daily: [],
@@ -89,6 +90,7 @@ export default defineEventHandler(async (event) => {
       overtimeDay: number
       overtimeNight: number
       nightSurcharge: number
+      lateCount: number
     }>([
       { $match: match },
       {
@@ -102,6 +104,7 @@ export default defineEventHandler(async (event) => {
           overtimeDay: { $sum: { $ifNull: ['$overtimeDayHours', 0] } },
           overtimeNight: { $sum: { $ifNull: ['$overtimeNightHours', 0] } },
           nightSurcharge: { $sum: { $ifNull: ['$nightSurcharge', 0] } },
+          lateCount: { $sum: { $ifNull: ['$isLate', false] } },
         },
       },
     ]),
@@ -206,6 +209,7 @@ export default defineEventHandler(async (event) => {
           overtimeDay: round2(summary.overtimeDay),
           overtimeNight: round2(summary.overtimeNight),
           nightSurcharge: round2(summary.nightSurcharge),
+          lateCount: summary.lateCount ?? 0,
         }
       : empty.summary,
     statusCounts,

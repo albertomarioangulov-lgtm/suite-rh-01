@@ -29,6 +29,7 @@ const headers = [
   { title: 'Horas', key: 'hoursWorked' },
   { title: 'Extras D', key: 'overtimeDayHours' },
   { title: 'Extras N', key: 'overtimeNightHours' },
+  { title: 'Llegada', key: 'isLate' },
   { title: 'Estado', key: 'status' },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
@@ -46,7 +47,11 @@ const totalOvertime = (record: IAttendanceRecord) =>
 
 /** Resalta la fila cuando se supera el límite legal diario (2 h). */
 const rowClass = (record: IAttendanceRecord) =>
-  totalOvertime(record) > 2 ? 'bg-warning-lighten-5' : ''
+  record.isLate
+    ? 'bg-error-lighten-5'
+    : totalOvertime(record) > 2
+      ? 'bg-warning-lighten-5'
+      : ''
 </script>
 
 <template>
@@ -104,6 +109,19 @@ const rowClass = (record: IAttendanceRecord) =>
         +{{ item.overtimeNightHours.toFixed(1) }}h
       </v-chip>
       <span v-else class="text-caption text-medium-emphasis">0.0h</span>
+    </template>
+    <template #[`item.isLate`]="{ item }">
+      <v-chip
+        v-if="item.isLate"
+        size="x-small"
+        color="error"
+        variant="tonal"
+      >
+        Tarde +{{ item.lateMinutes }}min
+      </v-chip>
+      <v-chip v-else size="x-small" color="success" variant="tonal">
+        A tiempo
+      </v-chip>
     </template>
     <template #[`item.status`]="{ item }">
       <AttendanceStatusBadge :status="item.status" />

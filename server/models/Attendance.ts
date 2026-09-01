@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import type { InferSchemaType } from 'mongoose'
 import { Company } from '~~/server/models/Company'
 import { Employee } from '~~/server/models/Employee'
+import { Shift } from '~~/server/models/Shift'
 import {
   getWeekRange,
   splitDayNightHours,
@@ -40,6 +41,9 @@ const AttendanceSchema = new Schema(
     nightSurcharge: { type: Number, default: 0 },
     // El modelo Shift llegará en una fase futura; se guarda el id.
     assignedShift: { type: Schema.Types.ObjectId, ref: 'Shift', default: null },
+    /** Llegada tarde vs. inicio del turno asignado (calculado al guardar). */
+    isLate: { type: Boolean, default: false },
+    lateMinutes: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
@@ -101,6 +105,37 @@ AttendanceSchema.pre('save', async function () {
   this.overtimeDayHours = overtimeDayHours
   this.overtimeNightHours = overtimeNightHours
   this.nightSurcharge = Math.round(nightHours * NIGHT_SURCHARGE_RATE * 100) / 100
+
+  // Llegadas tardías: compara la hora de entrada con el inicio del turno
+  // asignado al empleado para ese día (primer rango del día).
+  let isLate = false
+  let lateMinutes = 0
+  const employeeRecord = await Employee.findById(this.employee).select(
+    'assignedShift',
+  )
+  if (employeeRecord?.assignedShift) {
+    const shift = await Shift.findById(employeeRecord.assignedShift)
+      .select('days')
+      .lean()
+    const day = (shift?.days ?? []).find(
+      (entry) => entry.dayOfWeek === this.clockIn.getDay(),
+    )
+    const startTime = (day?.ranges?.[0] as { startTime?: string } | undefined)
+      ?.startTime
+    if (startTime) {
+      const [hour, minute] = startTime.split(':').map(Number)
+      const shiftStartMinutes = (hour ?? 0) * 60 + (minute ?? 0)
+      const clockInMinutes =
+        this.clockIn.getHours() * 60 + this.clockIn.getMinutes()
+      const diff = clockInMinutes - shiftStartMinutes
+      if (diff > 0) {
+        isLate = true
+        lateMinutes = diff
+      }
+    }
+  }
+  this.isLate = isLate
+  this.lateMinutes = lateMinutes
 
   if (!this.tenantId && this.employee) {
     const employee = await Employee.findById(this.employee)

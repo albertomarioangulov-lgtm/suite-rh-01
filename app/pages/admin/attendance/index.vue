@@ -71,6 +71,7 @@ interface IAttendanceDashboard {
     overtimeDay: number
     overtimeNight: number
     nightSurcharge: number
+    lateCount: number
   }
   statusCounts: Record<string, number>
   daily: Array<{
@@ -269,6 +270,13 @@ const dashboardKpis = computed(() => {
         : '',
       icon: 'mdi-clock-pending-outline',
       color: 'error',
+    },
+    {
+      title: 'Llegadas tarde',
+      value: summary?.lateCount ?? 0,
+      suffix: 'vs. inicio del turno asignado',
+      icon: 'mdi-clock-alert-outline',
+      color: 'deep-orange',
     },
   ]
 })

@@ -133,6 +133,8 @@ const profiles = [
     shiftType: DAY,
     arlRiskClass: 1,
     overtimeWeekdays: [],
+    lateWeekdays: [1, 4],
+    lateMinutes: 25,
     absences: [],
   },
   {
@@ -146,6 +148,8 @@ const profiles = [
     shiftType: DAY,
     arlRiskClass: 1,
     overtimeWeekdays: [],
+    lateWeekdays: [2, 5],
+    lateMinutes: 35,
     absences: [
       [3, ABSENCE_TYPES.PERMISO_MEDICO, 8, 8],
       [2, ABSENCE_TYPES.PERMISO_LEGAL, 20, 20],
@@ -1073,8 +1077,14 @@ const buildAttendance = (employee, profile, workday) => {
   const { dateStr, weekday } = workday
   const hasOvertime = (profile.overtimeWeekdays ?? []).includes(weekday)
   const isAfternoon = profile.shiftType === AFTERNOON
+  const lateAdjustment = (profile.lateWeekdays ?? []).includes(weekday)
+    ? (profile.lateMinutes ?? 0)
+    : 0
   const clockIn = new Date(
-    `${dateStr}T${isAfternoon ? '13:00' : '08:00'}:00-05:00`,
+    new Date(
+      `${dateStr}T${isAfternoon ? '13:00' : '08:00'}:00-05:00`,
+    ).getTime() +
+      lateAdjustment * 60 * 1000,
   )
   const clockOut = new Date(
     `${dateStr}T${isAfternoon ? (hasOvertime ? '22:00' : '21:00') : hasOvertime ? '18:00' : '16:00'}:00-05:00`,

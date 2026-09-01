@@ -17,6 +17,8 @@ export interface IAttendanceRecord {
   overtimeDayHours: number
   overtimeNightHours: number
   nightSurcharge: number
+  isLate?: boolean
+  lateMinutes?: number
   status: AttendanceStatus
   observations?: string
   createdAt?: string
