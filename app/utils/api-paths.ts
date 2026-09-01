@@ -67,6 +67,7 @@ export const API_PATHS = {
     detail: (id: string) => `${API_BASE}/payroll/${id}`,
     cen: (id: string) => `${API_BASE}/payroll/${id}/cen`,
     cenAll: (id: string) => `${API_BASE}/payroll/${id}/cen-all`,
+    transmit: (id: string) => `${API_BASE}/payroll/${id}/transmit`,
     nominaExport: (id: string) => `${API_BASE}/payroll/${id}/nomina-export`,
     approve: (id: string) => `${API_BASE}/payroll/${id}/approve`,
     pay: (id: string) => `${API_BASE}/payroll/${id}/pay`,

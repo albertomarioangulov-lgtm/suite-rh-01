@@ -27,6 +27,25 @@ const adjustmentForm = reactive({
   loans: 0,
 })
 
+interface ITransmissionResult {
+  employeeId: string
+  employeeName: string
+  fileName?: string
+  envelope?: string
+  isValid?: boolean
+  statusCode?: string
+  statusDescription?: string
+  statusMessage?: string
+  errors?: string[]
+  xmlDocumentKey?: string
+  error?: string
+}
+
+const transmitDialog = ref(false)
+const transmitting = ref(false)
+const transmissionResults = ref<ITransmissionResult[]>([])
+const transmissionMeta = ref<{ environment: number; endpointUrl: string; dryRun: boolean } | null>(null)
+
 const { user: authUser } = useAuthState()
 const snackbar = useSnackbarState()
 const {
@@ -77,6 +96,44 @@ const run = async (fn: (id: string) => Promise<unknown>, message: string) => {
     await load()
   } catch {
     // Error visible en VAlert.
+  }
+}
+
+const transmitToDian = async (dryRun: boolean) => {
+  transmitting.value = true
+  try {
+    const { authFetch } = useAuthState()
+    const data = await authFetch<{
+      environment: number
+      endpointUrl: string
+      dryRun: boolean
+      results: ITransmissionResult[]
+    }>(API_PATHS.payroll.transmit(payrollId.value), {
+      method: 'POST',
+      query: dryRun ? { dryRun: 'true' } : undefined,
+    })
+    transmissionResults.value = data.results ?? []
+    transmissionMeta.value = {
+      environment: data.environment,
+      endpointUrl: data.endpointUrl,
+      dryRun: data.dryRun,
+    }
+    transmitDialog.value = true
+    if (!dryRun) snackbar.success('Transmisión enviada a la DIAN')
+  } catch {
+    snackbar.error('No se pudo transmitir a la DIAN. Revisa el certificado y la configuración.')
+  } finally {
+    transmitting.value = false
+  }
+}
+
+const copySoapEnvelope = async (envelope?: string) => {
+  if (!envelope) return
+  try {
+    await navigator.clipboard.writeText(envelope)
+    snackbar.success('Sobre SOAP copiado al portapapeles')
+  } catch {
+    snackbar.error('No se pudo copiar el sobre SOAP')
   }
 }
 
@@ -486,6 +543,16 @@ const topEmployeesOptions = computed(() => {
           Planilla DIAN
         </v-btn>
         <v-btn
+          v-if="canAdjust && currentPayroll.employees?.length"
+          variant="text"
+          color="primary"
+          prepend-icon="mdi-send-check-outline"
+          :loading="transmitting"
+          @click="transmitToDian(false)"
+        >
+          Transmitir a la DIAN
+        </v-btn>
+        <v-btn
           v-if="canApprove && currentPayroll.status === 'draft'"
           variant="tonal"
           color="success"
@@ -886,6 +953,106 @@ const topEmployeesOptions = computed(() => {
           >
             Guardar ajustes
           </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="transmitDialog" max-width="760" :fullscreen="$vuetify.display.smAndDown">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon class="mr-2" color="primary">mdi-send-check-outline</v-icon>
+          <span class="text-subtitle-1 font-weight-bold">
+            Transmisión a la DIAN
+          </span>
+          <v-spacer />
+          <v-btn variant="text" icon="mdi-close" @click="transmitDialog = false" />
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pt-4">
+          <v-alert
+            v-if="transmissionMeta"
+            density="compact"
+            variant="tonal"
+            class="mb-3"
+            :type="transmissionMeta.dryRun ? 'info' : 'success'"
+            :text="`${transmissionMeta.dryRun ? 'Vista previa (sin envío)' : 'Enviado'} · ${transmissionMeta.environment === 1 ? 'Producción' : 'Habilitación'} · ${transmissionMeta.endpointUrl}`"
+          />
+          <v-table density="compact">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>ZIP</th>
+                <th>Estado</th>
+                <th>Resultado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="result in transmissionResults" :key="result.employeeId">
+                <td>{{ result.employeeName }}</td>
+                <td class="text-body-2">{{ result.fileName ?? '—' }}</td>
+                <td>
+                  <v-chip
+                    v-if="result.error"
+                    size="x-small"
+                    color="error"
+                    variant="tonal"
+                  >
+                    Error
+                  </v-chip>
+                  <v-chip
+                    v-else-if="result.envelope"
+                    size="x-small"
+                    color="info"
+                    variant="tonal"
+                  >
+                    SOAP listo
+                  </v-chip>
+                  <v-chip
+                    v-else
+                    size="x-small"
+                    :color="result.isValid ? 'success' : 'error'"
+                    variant="tonal"
+                  >
+                    {{ result.isValid ? 'Válido' : 'Rechazado' }}
+                  </v-chip>
+                </td>
+                <td class="text-body-2">
+                  <template v-if="result.error">{{ result.error }}</template>
+                  <template v-else-if="result.envelope">
+                    <v-btn
+                      variant="text"
+                      size="small"
+                      prepend-icon="mdi-code-json"
+                      @click="copySoapEnvelope(result.envelope)"
+                    >
+                      Copiar SOAP
+                    </v-btn>
+                  </template>
+                  <template v-else>
+                    <div>{{ result.statusMessage || result.statusDescription }}</div>
+                    <div v-if="result.statusCode" class="text-caption text-medium-emphasis">
+                      Código {{ result.statusCode }}
+                    </div>
+                    <ul v-if="result.errors?.length" class="text-caption mt-1 mb-0">
+                      <li v-for="(err, index) in result.errors" :key="index">{{ err }}</li>
+                    </ul>
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            v-if="!transmissionMeta?.dryRun"
+            variant="text"
+            prepend-icon="mdi-eye-outline"
+            @click="transmitToDian(true)"
+          >
+            Vista previa SOAP
+          </v-btn>
+          <v-btn variant="tonal" @click="transmitDialog = false">Cerrar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
