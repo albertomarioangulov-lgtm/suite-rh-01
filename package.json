@@ -19,6 +19,7 @@
     "@mdi/font": "^7.4.47",
     "@vueuse/core": "^14.4.0",
     "@vueuse/nuxt": "^14.4.0",
+    "archiver": "7.0.1",
     "bcrypt": "^6.0.0",
     "chalk": "^6.0.0",
     "dayjs": "^1.11.23",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^1.17.0",
+    "@types/archiver": "^8.0.0",
     "@types/bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^10.9.1",
