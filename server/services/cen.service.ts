@@ -11,6 +11,22 @@
  * valida contra ellos (ver README de esa carpeta).
  */
 
+import { Company } from '~~/server/models/Company'
+import {
+  PAYROLL_FREQUENCIES,
+  type PayrollFrequency,
+} from '~~/shared/payroll-period'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Códigos DIAN de TipoContrato (tabla 5.5.2 del anexo técnico). */
+const CONTRACT_TYPE_CODES: Record<string, number> = {
+  indefinite: 2,
+  fixed: 1,
+  work_labor: 3,
+  intern: 4,
+}
+
 export const escapeXml = (value: unknown): string =>
   String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -354,4 +370,213 @@ export const buildCenXml = (data: ICenPayload): string => {
   <DeduccionesTotal>${money(deducciones.total)}</DeduccionesTotal>
   <ComprobanteTotal>${money(data.totalToPay)}</ComprobanteTotal>
 </NominaIndividual>`
+}
+
+export interface ICenEmployeeSource {
+  payroll: {
+    periodStart: Date
+    periodEnd: Date
+    periodoNomina?: number
+  }
+  company: {
+    _id: unknown
+    name: string
+    nit: string
+    address?: string
+    municipalityCode?: string
+    cenEnvironment?: number
+    softwareId?: string
+    softwareSC?: string
+    payrollFrequency?: string
+    paymentMethod?: number
+  }
+  employee: {
+    _id: unknown
+    firstName: string
+    lastName: string
+    document: string
+    documentType?: number
+    employeeType?: string
+    subEmployeeType?: string
+    salarioIntegral?: boolean
+    bankName?: string
+    accountType?: string
+    accountNumber?: string
+    hireDate?: Date | string | null
+    contractType?: string
+    baseSalary?: number
+  }
+  entry: {
+    devengados?: {
+      daysWorked?: number
+      baseSalary?: number
+      transportAllowance?: number
+      overtimeDay?: number
+      overtimeNight?: number
+      nightSurcharge?: number
+      overtimeDayHours?: number
+      overtimeNightHours?: number
+      nightSurchargeHours?: number
+      bonuses?: number
+      commissions?: number
+      absenceCompanyPaidValue?: number
+      absenceEpsValue?: number
+      absenceArlValue?: number
+      absenceCompanyPaidDays?: number
+      absenceEpsDays?: number
+      absenceArlDays?: number
+      total?: number
+    }
+    deducciones?: {
+      employeeHealth?: number
+      employeePension?: number
+      sourceRetention?: number
+      garnishments?: number
+      loans?: number
+      total?: number
+    }
+    conceptos?: Array<{
+      type?: string
+      dianBlock?: string
+      value?: number
+    }>
+    totalToPay?: number
+  }
+}
+
+/**
+ * Construye el DSNE de un empleado dentro de una nómina, con numeración
+ * correlativa anual atómica, hora de Colombia y los datos maestros DIAN.
+ * Usado por la descarga individual y por la masiva (ZIP).
+ */
+export const buildCenForEmployee = async (
+  source: ICenEmployeeSource,
+): Promise<{ xml: string; filename: string }> => {
+  const { payroll, company, employee, entry } = source
+  const municipalityCode = company.municipalityCode?.trim() ?? ''
+  if (!/^\d{5}$/.test(municipalityCode)) {
+    throw createError({
+      statusCode: 400,
+      message:
+        'Configura el código de municipio (DIVIPOLA, 5 dígitos) en la configuración de la empresa antes de generar el DSNE.',
+    })
+  }
+
+  const start = String(payroll.periodStart.toISOString().slice(0, 10))
+  const end = String(payroll.periodEnd.toISOString().slice(0, 10))
+  const year = end.slice(0, 4)
+
+  // Numeración correlativa anual, atómica por empresa.
+  let sequence = 1
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const bumped = await Company.findOneAndUpdate(
+      { _id: company._id, cenSequenceYear: year },
+      { $inc: { cenSequence: 1 } },
+      { new: true },
+    ).lean()
+    if (bumped) {
+      sequence = bumped.cenSequence ?? 1
+      break
+    }
+    await Company.findOneAndUpdate(
+      { _id: company._id },
+      { $set: { cenSequenceYear: year, cenSequence: 0 } },
+    ).lean()
+  }
+
+  const hireDate = employee.hireDate
+    ? String(new Date(employee.hireDate).toISOString().slice(0, 10))
+    : undefined
+  const tiempoLaborado = hireDate
+    ? Math.max(
+        1,
+        Math.round(
+          (new Date(`${end}T00:00:00Z`).getTime() -
+            new Date(`${hireDate}T00:00:00Z`).getTime()) /
+            DAY_MS,
+        ) + 1,
+      )
+    : (entry.devengados?.daysWorked ?? 0)
+
+  const now = new Date()
+  const colombiaTime = new Date(now.getTime() - 5 * 60 * 60 * 1000)
+  const generationDate = colombiaTime.toISOString().slice(0, 10)
+  const generationTime = `${colombiaTime.toISOString().slice(11, 19)}-05:00`
+
+  const xml = buildCenXml({
+    sequence,
+    generationDate,
+    generationTime,
+    softwareId: company.softwareId || undefined,
+    softwareSC: company.softwareSC || undefined,
+    environment: (company.cenEnvironment ?? 2) as 1 | 2,
+    payrollFrequencyCode:
+      payroll.periodoNomina ||
+      PAYROLL_FREQUENCIES[
+        (company.payrollFrequency as PayrollFrequency) ?? 'mensual'
+      ]?.dianCode ||
+      5,
+    paymentMethod: company.paymentMethod ?? 42,
+    conceptos: (entry.conceptos ?? []).map((concept) => ({
+      type: concept.type as 'devengo' | 'deduccion',
+      dianBlock: concept.dianBlock ?? '',
+      value: concept.value ?? 0,
+    })),
+    company: {
+      name: company.name,
+      nit: company.nit,
+      address: company.address,
+      municipalityCode,
+    },
+    employee: {
+      document: employee.document,
+      documentType: employee.documentType ?? 13,
+      employeeType: employee.employeeType ?? '01',
+      subEmployeeType: employee.subEmployeeType ?? '00',
+      salarioIntegral: employee.salarioIntegral ?? false,
+      bankName: employee.bankName || undefined,
+      accountType: employee.accountType || undefined,
+      accountNumber: employee.accountNumber || undefined,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      hireDate,
+      contractTypeCode:
+        CONTRACT_TYPE_CODES[employee.contractType ?? 'indefinite'] ?? 2,
+      baseSalary: employee.baseSalary ?? 0,
+    },
+    period: { start, end },
+    daysWorked: entry.devengados?.daysWorked ?? 0,
+    tiempoLaborado,
+    devengados: {
+      baseSalary: entry.devengados?.baseSalary ?? 0,
+      transportAllowance: entry.devengados?.transportAllowance ?? 0,
+      overtimeDay: entry.devengados?.overtimeDay ?? 0,
+      overtimeNight: entry.devengados?.overtimeNight ?? 0,
+      nightSurcharge: entry.devengados?.nightSurcharge ?? 0,
+      overtimeDayHours: entry.devengados?.overtimeDayHours ?? 0,
+      overtimeNightHours: entry.devengados?.overtimeNightHours ?? 0,
+      nightSurchargeHours: entry.devengados?.nightSurchargeHours ?? 0,
+      bonuses: entry.devengados?.bonuses ?? 0,
+      commissions: entry.devengados?.commissions ?? 0,
+      absenceCompanyPaidValue: entry.devengados?.absenceCompanyPaidValue ?? 0,
+      absenceEpsValue: entry.devengados?.absenceEpsValue ?? 0,
+      absenceArlValue: entry.devengados?.absenceArlValue ?? 0,
+      absenceCompanyPaidDays: entry.devengados?.absenceCompanyPaidDays ?? 0,
+      absenceEpsDays: entry.devengados?.absenceEpsDays ?? 0,
+      absenceArlDays: entry.devengados?.absenceArlDays ?? 0,
+      total: entry.devengados?.total ?? 0,
+    },
+    deducciones: {
+      employeeHealth: entry.deducciones?.employeeHealth ?? 0,
+      employeePension: entry.deducciones?.employeePension ?? 0,
+      sourceRetention: entry.deducciones?.sourceRetention ?? 0,
+      garnishments: entry.deducciones?.garnishments ?? 0,
+      loans: entry.deducciones?.loans ?? 0,
+      total: entry.deducciones?.total ?? 0,
+    },
+    totalToPay: entry.totalToPay ?? 0,
+  })
+
+  const filename = `CEN_${company.nit}_${employee.document}_${start}_${end}.xml`
+  return { xml, filename }
 }
