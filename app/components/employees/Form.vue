@@ -38,6 +38,7 @@ const formState = reactive({
   createEmail: '',
   createPassword: '',
   document: props.employee?.document ?? '',
+  documentType: props.employee?.documentType ?? 13,
   firstName: props.employee?.firstName ?? '',
   lastName: props.employee?.lastName ?? '',
   email: props.employee?.email ?? '',
@@ -45,6 +46,12 @@ const formState = reactive({
     ? String(props.employee.hireDate).slice(0, 10)
     : '',
   contractType: props.employee?.contractType ?? 'indefinite',
+  employeeType: props.employee?.employeeType ?? '01',
+  subEmployeeType: props.employee?.subEmployeeType ?? '00',
+  salarioIntegral: props.employee?.salarioIntegral ?? false,
+  bankName: props.employee?.bankName ?? '',
+  accountType: props.employee?.accountType ?? null,
+  accountNumber: props.employee?.accountNumber ?? '',
   baseSalary: props.employee?.baseSalary ?? 0,
   position: props.employee?.position ?? '',
   department: props.employee?.department
@@ -143,6 +150,49 @@ const contractOptions = Object.entries(CONTRACT_TYPE_LABELS).map(
   ([value, title]) => ({ title, value }),
 )
 
+const documentTypeOptions = [
+  { title: 'Cédula de ciudadanía', value: 13 },
+  { title: 'Registro civil', value: 11 },
+  { title: 'Tarjeta de identidad', value: 12 },
+  { title: 'Tarjeta de extranjería', value: 21 },
+  { title: 'Cédula de extranjería', value: 22 },
+  { title: 'NIT', value: 31 },
+  { title: 'Pasaporte', value: 41 },
+  { title: 'Documento de identificación extranjero', value: 42 },
+  { title: 'PEP', value: 47 },
+  { title: 'NIT de otro país', value: 50 },
+  { title: 'NUIP', value: 91 },
+]
+
+const employeeTypeOptions = [
+  { title: 'Dependiente', value: '01' },
+  { title: 'Servicio doméstico', value: '02' },
+  { title: 'Madre comunitaria', value: '04' },
+  { title: 'Aprendiz del SENA (etapa lectiva)', value: '12' },
+  { title: 'Funcionario público sin tope máximo de IBC', value: '18' },
+  { title: 'Aprendiz del SENA (etapa productiva)', value: '19' },
+  { title: 'Estudiante de posgrado en salud', value: '21' },
+  { title: 'Profesor de establecimiento particular', value: '22' },
+  { title: 'Estudiante con aportes solo a riesgos laborales', value: '23' },
+  { title: 'Dependiente entidad pública con régimen especial en salud', value: '30' },
+  { title: 'Cooperado o precooperativa de trabajo asociado', value: '31' },
+  { title: 'Dependiente entidad del SGP (aportes patronales)', value: '47' },
+  { title: 'Trabajador de tiempo parcial', value: '51' },
+  { title: 'Pre pensionado de entidad en liquidación', value: '54' },
+  { title: 'Pre pensionado con aporte voluntario a salud', value: '56' },
+  { title: 'Estudiante de prácticas laborales en el sector público', value: '58' },
+]
+
+const subEmployeeTypeOptions = [
+  { title: 'No aplica', value: '00' },
+  { title: 'Dependiente pensionado por vejez activo', value: '01' },
+]
+
+const accountTypeOptions = [
+  { title: 'Ahorros', value: 'ahorros' },
+  { title: 'Corriente', value: 'corriente' },
+]
+
 const rules = {
   userId: [requiredRule('Selecciona el usuario a vincular')],
   createEmail: [requiredRule('Ingresa el correo de la cuenta')],
@@ -180,11 +230,18 @@ const save = async () => {
   try {
     const payload: Record<string, unknown> = {
       document: formState.document.trim(),
+      documentType: Number(formState.documentType),
       firstName: formState.firstName.trim(),
       lastName: formState.lastName.trim(),
       email: formState.email.trim() || undefined,
       hireDate: formState.hireDate || undefined,
       contractType: formState.contractType,
+      employeeType: formState.employeeType,
+      subEmployeeType: formState.subEmployeeType,
+      salarioIntegral: formState.salarioIntegral,
+      bankName: formState.bankName.trim() || undefined,
+      accountType: formState.accountType || undefined,
+      accountNumber: formState.accountNumber.trim() || undefined,
       baseSalary: Number(formState.baseSalary),
       position: formState.position.trim(),
       department: formState.department || null,
@@ -292,6 +349,14 @@ const save = async () => {
         />
       </v-col>
       <v-col cols="12" sm="6">
+        <v-select
+          v-model="formState.documentType"
+          :items="documentTypeOptions"
+          label="Tipo de documento (DIAN)"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
         <v-text-field
           v-model="formState.firstName"
           label="Nombre"
@@ -328,6 +393,22 @@ const save = async () => {
           v-model="formState.contractType"
           :items="contractOptions"
           label="Tipo de contrato"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          v-model="formState.employeeType"
+          :items="employeeTypeOptions"
+          label="Tipo de trabajador (DIAN)"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          v-model="formState.subEmployeeType"
+          :items="subEmployeeTypeOptions"
+          label="Subtipo de trabajador (DIAN)"
           class="mb-3"
         />
       </v-col>
@@ -377,6 +458,44 @@ const save = async () => {
           label="Empleado activo"
           color="success"
           inset
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-switch
+          v-model="formState.salarioIntegral"
+          label="Contrato de salario integral"
+          color="primary"
+          inset
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12">
+        <v-divider class="mb-3" />
+        <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+          Datos bancarios (para el pago de nómina)
+        </div>
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          v-model="formState.bankName"
+          label="Banco"
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="3">
+        <v-select
+          v-model="formState.accountType"
+          :items="accountTypeOptions"
+          label="Tipo de cuenta"
+          clearable
+          class="mb-3"
+        />
+      </v-col>
+      <v-col cols="12" sm="3">
+        <v-text-field
+          v-model="formState.accountNumber"
+          label="Número de cuenta"
           class="mb-3"
         />
       </v-col>

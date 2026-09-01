@@ -90,11 +90,22 @@ export default defineEventHandler(async (event) => {
     employee.user = new mongoose.Types.ObjectId(data.userId)
   if (data.unlinkUser) employee.user = null
   if (data.document !== undefined) employee.document = data.document
+  if (data.documentType !== undefined) employee.documentType = data.documentType
   if (data.firstName !== undefined) employee.firstName = data.firstName
   if (data.lastName !== undefined) employee.lastName = data.lastName
   if (data.email !== undefined) employee.email = data.email
   if (data.hireDate !== undefined) employee.hireDate = data.hireDate
   if (data.contractType !== undefined) employee.contractType = data.contractType
+  if (data.employeeType !== undefined) employee.employeeType = data.employeeType
+  if (data.subEmployeeType !== undefined)
+    employee.subEmployeeType = data.subEmployeeType
+  if (data.salarioIntegral !== undefined)
+    employee.salarioIntegral = data.salarioIntegral
+  if (data.bankName !== undefined) employee.bankName = data.bankName ?? ''
+  if (data.accountType !== undefined)
+    employee.accountType = data.accountType ?? null
+  if (data.accountNumber !== undefined)
+    employee.accountNumber = data.accountNumber ?? ''
   if (data.baseSalary !== undefined) employee.baseSalary = data.baseSalary
   if (data.position !== undefined) employee.position = data.position
   if (data.department !== undefined) employee.department = data.department ?? null

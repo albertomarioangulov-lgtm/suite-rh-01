@@ -17,6 +17,15 @@ const employeeSearch = ref('')
 const { viewMode, toggleView } = useViewMode('payroll-employees-view-mode')
 const breakdownOpen = ref(false)
 const selectedEntry = ref<IPayrollEntry | null>(null)
+const adjustDialog = ref(false)
+const adjustingEntry = ref<IPayrollEntry | null>(null)
+const savingAdjustment = ref(false)
+const adjustmentForm = reactive({
+  bonuses: 0,
+  commissions: 0,
+  garnishments: 0,
+  loans: 0,
+})
 
 const { user: authUser } = useAuthState()
 const snackbar = useSnackbarState()
@@ -25,6 +34,7 @@ const {
   loading,
   error,
   fetchPayrollById,
+  updatePayroll,
   approvePayroll,
   payPayroll,
   cancelPayroll,
@@ -38,6 +48,11 @@ const canApprove = computed(
   () => !!role.value && [ROLES.ADMIN, ROLES.MANAGER].includes(role.value),
 )
 const canPay = computed(() => role.value === ROLES.ADMIN)
+const canAdjust = computed(
+  () =>
+    !!role.value &&
+    [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role.value),
+)
 
 const load = async () => {
   try {
@@ -118,6 +133,45 @@ const openBreakdown = (entry: IPayrollEntry) => {
   breakdownOpen.value = true
 }
 
+const employeeIdOf = (entry: IPayrollEntry) =>
+  typeof entry.employee === 'object' && entry.employee
+    ? String(entry.employee._id)
+    : String(entry.employee)
+
+const openAdjust = (entry: IPayrollEntry) => {
+  adjustingEntry.value = entry
+  adjustmentForm.bonuses = entry.devengados.bonuses ?? 0
+  adjustmentForm.commissions = entry.devengados.commissions ?? 0
+  adjustmentForm.garnishments = entry.deducciones.garnishments ?? 0
+  adjustmentForm.loans = entry.deducciones.loans ?? 0
+  adjustDialog.value = true
+}
+
+const saveAdjustment = async () => {
+  if (!adjustingEntry.value) return
+  savingAdjustment.value = true
+  try {
+    await updatePayroll(payrollId.value, {
+      employees: [
+        {
+          employeeId: employeeIdOf(adjustingEntry.value),
+          bonuses: Number(adjustmentForm.bonuses) || 0,
+          commissions: Number(adjustmentForm.commissions) || 0,
+          garnishments: Number(adjustmentForm.garnishments) || 0,
+          loans: Number(adjustmentForm.loans) || 0,
+        },
+      ],
+    })
+    snackbar.success('Ajustes guardados')
+    adjustDialog.value = false
+    await fetchPayrollHistory(payrollId.value)
+  } catch {
+    // Error visible en VAlert.
+  } finally {
+    savingAdjustment.value = false
+  }
+}
+
 const onRowClick = (
   _event: unknown,
   data: { item?: { entry?: IPayrollEntry } },
@@ -126,11 +180,7 @@ const onRowClick = (
 }
 
 const downloadCen = (entry: IPayrollEntry) => {
-  const employeeId =
-    typeof entry.employee === 'object' && entry.employee
-      ? String(entry.employee._id)
-      : String(entry.employee)
-  const url = `${API_PATHS.payroll.cen(payrollId.value)}?employeeId=${employeeId}`
+  const url = `${API_PATHS.payroll.cen(payrollId.value)}?employeeId=${employeeIdOf(entry)}`
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = ''
@@ -600,6 +650,15 @@ const topEmployeesOptions = computed(() => {
             title="Ver desglose"
             @click="openBreakdown(item.entry)"
           />
+          <v-btn
+            v-if="canAdjust && currentPayroll.status === 'draft'"
+            icon="mdi-cash-edit"
+            size="small"
+            variant="text"
+            color="warning"
+            title="Ajustar conceptos"
+            @click.stop="openAdjust(item.entry)"
+          />
         </template>
         <template #no-data>
           No hay empleados en esta nómina.
@@ -673,6 +732,110 @@ const topEmployeesOptions = computed(() => {
         </v-card-item>
         <v-divider />
         <PayrollEmployeeBreakdown :entry="selectedEntry" />
+        <v-card-actions
+          v-if="canAdjust && currentPayroll.status === 'draft'"
+        >
+          <v-spacer />
+          <v-btn
+            color="warning"
+            variant="tonal"
+            prepend-icon="mdi-cash-edit"
+            @click="openAdjust(selectedEntry); breakdownOpen = false"
+          >
+            Ajustar conceptos
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="adjustDialog" max-width="540">
+      <v-card v-if="adjustingEntry">
+        <v-card-item>
+          <template #prepend>
+            <v-avatar color="warning" variant="tonal" size="44">
+              <v-icon color="warning">mdi-cash-edit</v-icon>
+            </v-avatar>
+          </template>
+          <v-card-title class="text-subtitle-1 font-weight-bold">
+            Ajustar conceptos
+          </v-card-title>
+          <v-card-subtitle>
+            {{ employeeNameOf(adjustingEntry) }} ·
+            {{ employeeDocumentOf(adjustingEntry) || 'Sin documento' }}
+          </v-card-subtitle>
+          <template #append>
+            <v-btn
+              icon="mdi-close"
+              variant="text"
+              size="small"
+              @click="adjustDialog = false"
+            />
+          </template>
+        </v-card-item>
+        <v-divider />
+        <v-card-text>
+          <p class="text-caption text-medium-emphasis mb-3">
+            Los valores se suman al cálculo automático del empleado y se
+            reflejan en el DSNE. Solo aplica mientras la nómina esté en
+            borrador.
+          </p>
+          <v-row density="compact">
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="adjustmentForm.bonuses"
+                label="Bonificaciones ($)"
+                type="number"
+                min="0"
+                prefix="$"
+                class="mb-3"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="adjustmentForm.commissions"
+                label="Comisiones ($)"
+                type="number"
+                min="0"
+                prefix="$"
+                class="mb-3"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="adjustmentForm.garnishments"
+                label="Embargos ($)"
+                type="number"
+                min="0"
+                prefix="$"
+                class="mb-3"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="adjustmentForm.loans"
+                label="Préstamos ($)"
+                type="number"
+                min="0"
+                prefix="$"
+                class="mb-3"
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="adjustDialog = false">
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            :loading="savingAdjustment"
+            @click="saveAdjustment"
+          >
+            Guardar ajustes
+          </v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
 

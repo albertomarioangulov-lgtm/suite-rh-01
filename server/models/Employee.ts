@@ -19,6 +19,12 @@ const EmployeeSchema = new Schema(
       default: null,
     },
     document: { type: String, required: true, trim: true },
+    /** Código DIAN del tipo de documento (tabla 5.2.1 anexo técnico). Default: 13 = CC. */
+    documentType: {
+      type: Number,
+      enum: [11, 12, 13, 21, 22, 31, 41, 42, 47, 50, 91],
+      default: 13,
+    },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     email: { type: String, trim: true, lowercase: true },
@@ -28,6 +34,33 @@ const EmployeeSchema = new Schema(
       enum: ['indefinite', 'fixed', 'work_labor', 'intern'],
       default: 'indefinite',
     },
+    /** Código DIAN TipoTrabajador (tabla 5.5.3). Default: 01 = dependiente. */
+    employeeType: {
+      type: String,
+      enum: [
+        '01', '02', '04', '12', '18', '19', '21', '22', '23', '30',
+        '31', '47', '51', '54', '56', '58',
+      ],
+      default: '01',
+    },
+    /** Código DIAN SubTipoTrabajador (tabla 5.5.4). Default: 00 = no aplica. */
+    subEmployeeType: {
+      type: String,
+      enum: ['00', '01'],
+      default: '00',
+    },
+    /** Contrato con salario integral (SalarioIntegral en el DSNE). */
+    salarioIntegral: { type: Boolean, default: false },
+    /** Entidad bancaria para el pago de nómina. */
+    bankName: { type: String, trim: true, default: '' },
+    /** Tipo de cuenta bancaria: ahorros o corriente. */
+    accountType: {
+      type: String,
+      enum: ['ahorros', 'corriente'],
+      default: null,
+    },
+    /** Número de cuenta bancaria para el pago de nómina. */
+    accountNumber: { type: String, trim: true, default: '' },
     /** Alias legible de contractType (español). Se sincroniza con contractType. */
     tipoContrato: { type: String, trim: true },
     /** Día de descanso semanal (0=domingo … 6=sábado). Default: domingo. */

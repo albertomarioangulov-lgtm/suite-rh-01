@@ -9,11 +9,18 @@ export interface IEmployeeView {
     | Pick<AuthUser, '_id' | 'name' | 'email' | 'active' | 'role'>
     | null
   document: string
+  documentType: number
   firstName: string
   lastName: string
   email?: string
   hireDate?: string
   contractType: string
+  employeeType: string
+  subEmployeeType: string
+  salarioIntegral: boolean
+  bankName?: string
+  accountType?: 'ahorros' | 'corriente' | null
+  accountNumber?: string
   baseSalary: number
   position: string
   department?: { _id?: string; name?: string } | string | null
@@ -29,11 +36,18 @@ export interface IEmployeeView {
 export interface IEmployeePayload {
   user?: string
   document?: string
+  documentType?: number
   firstName?: string
   lastName?: string
   email?: string
   hireDate?: string
   contractType?: string
+  employeeType?: string
+  subEmployeeType?: string
+  salarioIntegral?: boolean
+  bankName?: string
+  accountType?: 'ahorros' | 'corriente' | null
+  accountNumber?: string
   baseSalary?: number
   position?: string
   department?: string | null
