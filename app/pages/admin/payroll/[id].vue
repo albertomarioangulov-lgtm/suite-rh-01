@@ -194,6 +194,15 @@ const downloadCen = (entry: IPayrollEntry) => {
   anchor.remove()
 }
 
+const downloadAllCen = () => {
+  const anchor = document.createElement('a')
+  anchor.href = API_PATHS.payroll.cenAll(payrollId.value)
+  anchor.download = ''
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+}
+
 const employeeRows = computed(() =>
   filteredEmployees.value.map((entry) => ({
     entry,
@@ -449,6 +458,15 @@ const topEmployeesOptions = computed(() => {
       </v-chip>
       <v-spacer />
       <template v-if="currentPayroll">
+        <v-btn
+          v-if="canAdjust && currentPayroll.employees?.length"
+          variant="text"
+          color="teal"
+          prepend-icon="mdi-folder-zip-outline"
+          @click="downloadAllCen"
+        >
+          CEN (ZIP)
+        </v-btn>
         <v-btn
           v-if="canApprove && currentPayroll.status === 'draft'"
           variant="tonal"
