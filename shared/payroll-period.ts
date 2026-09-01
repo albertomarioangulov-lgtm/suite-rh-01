@@ -84,3 +84,16 @@ export const getPayrollPeriodForDate = (
       return null
   }
 }
+
+/**
+ * Indica si un período coincide con la regla de la frecuencia.
+ * Para "otro" no hay regla automática: se considera válido.
+ */
+export const matchesPayrollPeriod = (
+  frequency: PayrollFrequency,
+  period: { start: string; end: string },
+): boolean => {
+  const suggested = getPayrollPeriodForDate(frequency, period.end)
+  if (!suggested) return true
+  return suggested.start === period.start && suggested.end === period.end
+}

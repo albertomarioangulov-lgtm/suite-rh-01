@@ -2,6 +2,7 @@
 import { requiredRule } from '~/utils/validation-rules'
 import {
   getPayrollPeriodForDate,
+  matchesPayrollPeriod,
   PAYROLL_FREQUENCIES,
   type PayrollFrequency,
 } from '~~/shared/payroll-period'
@@ -51,6 +52,14 @@ const suggestedPeriod = computed(() =>
     ? getPayrollPeriodForDate(frequency.value, periodEnd.value)
     : null,
 )
+
+const periodMismatch = computed(() => {
+  if (!periodStart.value || !periodEnd.value) return false
+  return !matchesPayrollPeriod(frequency.value, {
+    start: periodStart.value,
+    end: periodEnd.value,
+  })
+})
 
 const applySuggestion = (anchor: string) => {
   if (!frequency.value) return
@@ -213,6 +222,14 @@ const submit = async () => {
           >
             Usar período sugerido
           </v-btn>
+          <v-alert
+            v-if="periodMismatch"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mb-3"
+            text="El período no coincide con la frecuencia del ciclo. Solo continúa si es intencional (primer ciclo, período parcial o ajuste)."
+          />
           <div class="d-flex justify-end ga-2">
             <v-btn
               variant="text"
