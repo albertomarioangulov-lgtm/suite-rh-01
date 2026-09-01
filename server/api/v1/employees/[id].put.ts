@@ -106,6 +106,8 @@ export default defineEventHandler(async (event) => {
     employee.accountType = data.accountType ?? null
   if (data.accountNumber !== undefined)
     employee.accountNumber = data.accountNumber ?? ''
+  if (data.payrollCycle !== undefined)
+    employee.payrollCycle = data.payrollCycle ?? null
   if (data.baseSalary !== undefined) employee.baseSalary = data.baseSalary
   if (data.position !== undefined) employee.position = data.position
   if (data.department !== undefined) employee.department = data.department ?? null

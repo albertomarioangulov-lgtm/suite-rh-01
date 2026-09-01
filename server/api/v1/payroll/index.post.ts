@@ -19,7 +19,11 @@ export default defineEventHandler(async (event) => {
   const data = validateWithSchema(payrollCreateSchema, body)
 
   return createPayroll(
-    { periodStart: data.periodStart, periodEnd: data.periodEnd },
+    {
+      periodStart: data.periodStart,
+      periodEnd: data.periodEnd,
+      cycleId: data.cycleId,
+    },
     userId,
   )
 })

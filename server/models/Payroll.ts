@@ -86,6 +86,15 @@ const PayrollSchema = new Schema(
       ref: 'Company',
       required: true,
     },
+    /** Ciclo de pago al que pertenece la nómina. */
+    cycle: {
+      type: Schema.Types.ObjectId,
+      ref: 'PayrollCycle',
+      default: null,
+      index: true,
+    },
+    /** Código DIAN PeriodoNomina (tabla 5.5.1) congelado al crear la nómina. */
+    periodoNomina: { type: Number, default: 0 },
     periodStart: { type: Date, required: true },
     periodEnd: { type: Date, required: true },
     status: {
@@ -106,10 +115,10 @@ const PayrollSchema = new Schema(
   { timestamps: true, versionKey: false },
 )
 
-PayrollSchema.index(
-  { tenantId: 1, periodStart: 1, periodEnd: 1 },
-  { unique: true },
-)
+// La unicidad de período la valida el servicio por ciclo; aquí solo se
+// indexan las consultas (ciclos distintos pueden compartir fechas).
+PayrollSchema.index({ tenantId: 1, cycle: 1, periodStart: 1, periodEnd: 1 })
+PayrollSchema.index({ tenantId: 1, periodStart: 1, periodEnd: 1 })
 PayrollSchema.index({ status: 1 })
 PayrollSchema.index({ 'employees.employee': 1 })
 

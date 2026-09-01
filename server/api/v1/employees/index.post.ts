@@ -132,6 +132,7 @@ export default defineEventHandler(async (event) => {
     bankName: data.bankName ?? '',
     accountType: data.accountType ?? null,
     accountNumber: data.accountNumber ?? '',
+    payrollCycle: data.payrollCycle ?? null,
     baseSalary: data.baseSalary,
     position: data.position,
     department: data.department ?? null,

@@ -61,6 +61,13 @@ const EmployeeSchema = new Schema(
     },
     /** Número de cuenta bancaria para el pago de nómina. */
     accountNumber: { type: String, trim: true, default: '' },
+    /** Ciclo de pago de nómina; vacío = ciclo por defecto de la empresa. */
+    payrollCycle: {
+      type: Schema.Types.ObjectId,
+      ref: 'PayrollCycle',
+      default: null,
+      index: true,
+    },
     /** Alias legible de contractType (español). Se sincroniza con contractType. */
     tipoContrato: { type: String, trim: true },
     /** Día de descanso semanal (0=domingo … 6=sábado). Default: domingo. */

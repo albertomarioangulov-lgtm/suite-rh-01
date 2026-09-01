@@ -20,6 +20,10 @@ vi.mock('~~/server/models/Payroll', () => ({
   Payroll: { findOne: vi.fn(), findById: vi.fn(), create: vi.fn() },
 }))
 
+vi.mock('~~/server/models/PayrollCycle', () => ({
+  PayrollCycle: { findOne: vi.fn(), findById: vi.fn(), create: vi.fn() },
+}))
+
 vi.mock('~~/server/models/Absence', () => ({
   Absence: {
     findApprovedByEmployeeAndRange: vi.fn(async () => []),
@@ -33,6 +37,7 @@ vi.mock('~~/server/utils/audit', () => ({
 import { Attendance } from '~~/server/models/Attendance'
 import { Absence } from '~~/server/models/Absence'
 import { Payroll } from '~~/server/models/Payroll'
+import { PayrollCycle } from '~~/server/models/PayrollCycle'
 import { ABSENCE_TYPES } from '~~/shared/absence'
 import {
   calculateDeducciones,
@@ -232,5 +237,49 @@ describe('validatePayrollPeriod', () => {
         new Date('2026-09-30'),
       ),
     ).resolves.toBeUndefined()
+  })
+
+  it('valida el período dentro del ciclo elegido', async () => {
+    ;(Payroll.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(null)
+    ;(PayrollCycle.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      _id: 'cicloA',
+      isDefault: false,
+    })
+
+    await expect(
+      validatePayrollPeriod(
+        'company1',
+        new Date('2026-08-01'),
+        new Date('2026-08-15'),
+        'cicloA',
+      ),
+    ).resolves.toBeUndefined()
+    expect(Payroll.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        $or: [{ cycle: 'cicloA' }],
+      }),
+    )
+  })
+
+  it('el ciclo por defecto comparte espacio con nóminas sin ciclo', async () => {
+    ;(Payroll.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(null)
+    ;(PayrollCycle.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      _id: 'cicloDefault',
+      isDefault: true,
+    })
+
+    await expect(
+      validatePayrollPeriod(
+        'company1',
+        new Date('2026-08-01'),
+        new Date('2026-08-31'),
+        'cicloDefault',
+      ),
+    ).resolves.toBeUndefined()
+    expect(Payroll.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        $or: [{ cycle: 'cicloDefault' }, { cycle: null }],
+      }),
+    )
   })
 })

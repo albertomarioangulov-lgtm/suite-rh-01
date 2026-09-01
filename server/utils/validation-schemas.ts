@@ -239,6 +239,7 @@ export const employeeCreateSchema = employeeAccountSchema.extend({
   bankName: z.string().trim().max(80).optional(),
   accountType: z.enum(['ahorros', 'corriente']).optional(),
   accountNumber: z.string().trim().max(30).optional(),
+  payrollCycle: mongoIdSchema.nullable().optional(),
   baseSalary: z.number().positive('El salario base debe ser mayor a 0'),
   arlRiskClass: z.number().int().min(1).max(5).default(1),
   position: z.string().trim().min(1, 'El cargo es requerido'),
@@ -266,6 +267,7 @@ export const employeeUpdateSchema = z.object({
   bankName: z.string().trim().max(80).optional(),
   accountType: z.enum(['ahorros', 'corriente']).optional(),
   accountNumber: z.string().trim().max(30).optional(),
+  payrollCycle: mongoIdSchema.nullable().optional(),
   baseSalary: z.number().positive('El salario base debe ser mayor a 0').optional(),
   arlRiskClass: z.number().int().min(1).max(5).optional(),
   position: z.string().trim().min(1, 'El cargo es requerido').optional(),
@@ -436,6 +438,22 @@ export const payrollConceptUpdateSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
 })
 
+export const payrollCycleSchema = z.object({
+  name: z.string().trim().min(1, 'El nombre es requerido'),
+  frequency: z.enum(PAYROLL_FREQUENCY_VALUES),
+  description: z.string().trim().max(300).optional(),
+  active: z.boolean().default(true),
+  sortOrder: z.number().int().min(0).default(0),
+})
+
+export const payrollCycleUpdateSchema = z.object({
+  name: z.string().trim().min(1, 'El nombre es requerido').optional(),
+  frequency: z.enum(PAYROLL_FREQUENCY_VALUES).optional(),
+  description: z.string().trim().max(300).optional(),
+  active: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+})
+
 export { z }
 
 const shiftDaySchema = z.object({
@@ -474,6 +492,7 @@ export const payrollCreateSchema = z
   .object({
     periodStart: dateOnlySchema,
     periodEnd: dateOnlySchema,
+    cycleId: mongoIdSchema.optional(),
   })
   .refine((data) => data.periodEnd > data.periodStart, {
     message: 'El fin del período debe ser posterior al inicio',

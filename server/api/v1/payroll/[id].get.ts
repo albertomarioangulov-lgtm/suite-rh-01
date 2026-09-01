@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
   )
   const payroll = await Payroll.findById(id)
     .populate('tenantId', 'name nit')
+    .populate('cycle', 'name frequency')
     .populate('employees.employee', 'firstName lastName document')
   if (!payroll) {
     throw createError({ statusCode: 404, message: 'Nómina no encontrada' })

@@ -11,10 +11,16 @@ import { Employee } from '~~/server/models/Employee'
 import { LegalParams } from '~~/server/models/LegalParams'
 import { Payroll } from '~~/server/models/Payroll'
 import { PayrollConcept } from '~~/server/models/PayrollConcept'
+import { PayrollCycle } from '~~/server/models/PayrollCycle'
 import { Alert } from '~~/server/models/Alert'
 import { getLoanDeductionForPeriod, recordLoanPayments } from '~~/server/services/loan.service'
 import { publishAlert } from '~~/server/utils/alert-stream'
 import { logAudit } from '~~/server/utils/audit'
+import { ensureDefaultCycle } from '~~/server/services/payroll-cycle.service'
+import {
+  PAYROLL_FREQUENCIES,
+  type PayrollFrequency,
+} from '~~/shared/payroll-period'
 
 /**
  * Tarifas ARL por clase de riesgo (Colombia).
@@ -315,13 +321,22 @@ export const validatePayrollPeriod = async (
   companyId: string,
   periodStart: Date,
   periodEnd: Date,
+  cycleId?: string,
 ) => {
-  const existing = await Payroll.findOne({
+  const filter: Record<string, unknown> = {
     tenantId: companyId,
     status: { $ne: 'cancelled' },
     periodStart: { $lte: periodEnd },
     periodEnd: { $gte: periodStart },
-  })
+  }
+  if (cycleId) {
+    const cycle = await PayrollCycle.findById(cycleId)
+    // El ciclo por defecto comparte espacio con las nóminas legacy (sin ciclo).
+    filter.$or = cycle?.isDefault
+      ? [{ cycle: cycleId }, { cycle: null }]
+      : [{ cycle: cycleId }]
+  }
+  const existing = await Payroll.findOne(filter)
   if (existing) {
     throw createError({
       statusCode: 409,
@@ -436,9 +451,12 @@ export const generatePayrollReport = (payroll: {
   totalToPay: payroll.totalToPay,
 })
 
-/** Crea la nómina (borrador) liquidando a todos los empleados activos. */
+/**
+ * Crea la nómina (borrador) liquidando a los empleados del ciclo elegido.
+ * Sin cycleId usa el ciclo por defecto (que agrupa a las nóminas legacy).
+ */
 export const createPayroll = async (
-  data: { periodStart: Date; periodEnd: Date },
+  data: { periodStart: Date; periodEnd: Date; cycleId?: string },
   createdBy?: string,
 ) => {
   const company = await Company.getConfig()
@@ -454,11 +472,59 @@ export const createPayroll = async (
       message: 'El fin del período debe ser posterior al inicio.',
     })
   }
-  await validatePayrollPeriod(String(company._id), data.periodStart, data.periodEnd)
+  let employees = await getActiveEmployees(String(company._id))
+
+  let cycle: {
+    _id: unknown
+    isDefault?: boolean
+    frequency?: string
+  } | null = null
+
+  if (data.cycleId) {
+    cycle = await PayrollCycle.findOne({
+      _id: data.cycleId,
+      tenantId: company._id,
+    }).lean()
+    if (!cycle) {
+      throw createError({
+        statusCode: 404,
+        message: 'Ciclo de pago no encontrado.',
+      })
+    }
+  } else {
+    cycle = await ensureDefaultCycle(
+      String(company._id),
+      (company.payrollFrequency as PayrollFrequency) ?? 'mensual',
+    )
+  }
+
+  if (cycle?.isDefault) {
+    const defaultId = String(cycle._id)
+    employees = employees.filter(
+      (employee) =>
+        !employee.payrollCycle || String(employee.payrollCycle) === defaultId,
+    )
+  } else if (cycle) {
+    const cycleId = String(cycle._id)
+    employees = employees.filter(
+      (employee) => String(employee.payrollCycle ?? '') === cycleId,
+    )
+  }
+
+  const periodoTipo =
+    cycle?.frequency ??
+    ((company.payrollFrequency as PayrollFrequency) ?? 'mensual')
+  const periodoNomina = PAYROLL_FREQUENCIES[periodoTipo]?.dianCode ?? 5
+
+  await validatePayrollPeriod(
+    String(company._id),
+    data.periodStart,
+    data.periodEnd,
+    cycle ? String(cycle._id) : undefined,
+  )
 
   const params = await getCurrentLegalParams()
   const concepts = await getActiveConcepts(String(company._id))
-  const employees = await getActiveEmployees(String(company._id))
   const entries = []
 
   for (const employee of employees) {
@@ -477,6 +543,8 @@ export const createPayroll = async (
 
   const payroll = await Payroll.create({
     tenantId: company._id,
+    cycle: cycle ? cycle._id : null,
+    periodoNomina,
     periodStart: data.periodStart,
     periodEnd: data.periodEnd,
     status: 'draft',

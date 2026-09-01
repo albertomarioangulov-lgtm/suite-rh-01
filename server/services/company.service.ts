@@ -1,5 +1,7 @@
 import { Company } from '~~/server/models/Company'
 import { LegalParams } from '~~/server/models/LegalParams'
+import { ensureDefaultCycle } from '~~/server/services/payroll-cycle.service'
+import type { PayrollFrequency } from '~~/shared/payroll-period'
 import type { companyUpdateSchema, legalParamsSchema } from '~~/server/utils/validation-schemas'
 import type { z } from 'zod'
 
@@ -54,6 +56,10 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       },
       active: true,
     })
+    await ensureDefaultCycle(
+      String(company._id),
+      (data.payrollFrequency as PayrollFrequency) ?? 'mensual',
+    )
     return { company: company.toJSON(), changes, created }
   }
 
@@ -86,6 +92,10 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       after: data.payrollFrequency,
     }
     company.payrollFrequency = data.payrollFrequency
+    await ensureDefaultCycle(
+      String(company._id),
+      data.payrollFrequency as PayrollFrequency,
+    )
   }
   if (data.cenEnvironment !== undefined) {
     changes.cenEnvironment = {

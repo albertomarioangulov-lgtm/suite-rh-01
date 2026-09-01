@@ -127,9 +127,11 @@ export default defineEventHandler(async (event) => {
     softwareSC: company.softwareSC || undefined,
     environment: (company.cenEnvironment ?? 2) as 1 | 2,
     payrollFrequencyCode:
+      payroll.periodoNomina ||
       PAYROLL_FREQUENCIES[
         (company.payrollFrequency as PayrollFrequency) ?? 'mensual'
-      ]?.dianCode ?? 5,
+      ]?.dianCode ||
+      5,
     paymentMethod: company.paymentMethod ?? 42,
     conceptos: (entry.conceptos ?? []).map((concept) => ({
       type: concept.type as 'devengo' | 'deduccion',
