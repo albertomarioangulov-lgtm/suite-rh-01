@@ -40,6 +40,7 @@ export const API_PATHS = {
   attendance: {
     list: `${API_BASE}/attendance`,
     dashboard: `${API_BASE}/attendance/dashboard`,
+    config: `${API_BASE}/attendance/config`,
     detail: (id: string) => `${API_BASE}/attendance/${id}`,
     approve: (id: string) => `${API_BASE}/attendance/${id}/approve`,
     reject: (id: string) => `${API_BASE}/attendance/${id}/reject`,

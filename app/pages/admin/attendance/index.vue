@@ -90,10 +90,15 @@ interface IAttendanceDashboard {
     hoursWorked: number
     records: number
   }>
+  lateToleranceMinutes: number
 }
 
 const dashboard = ref<IAttendanceDashboard | null>(null)
 const dashboardLoading = ref(false)
+const configOpen = ref(false)
+const tolerance = ref(5)
+const closedThrough = ref('')
+const savingConfig = ref(false)
 const search = ref('')
 const activeTab = ref<'dashboard' | 'list'>('dashboard')
 // Cache por combinación de filtros: volver a una vista ya consultada es instantáneo.
@@ -274,12 +279,71 @@ const dashboardKpis = computed(() => {
     {
       title: 'Llegadas tarde',
       value: summary?.lateCount ?? 0,
-      suffix: 'vs. inicio del turno asignado',
+      suffix: `vs. inicio de turno · tolerancia ${data?.lateToleranceMinutes ?? 5} min`,
       icon: 'mdi-clock-alert-outline',
       color: 'deep-orange',
     },
   ]
 })
+
+const closureOptions = computed(() => {
+  const options: Array<{ title: string; value: string }> = [
+    { title: 'Sin cierre', value: '' },
+  ]
+  const now = dayjs()
+  for (let offset = 0; offset < 12; offset += 1) {
+    const month = now.subtract(offset, 'month')
+    options.push({
+      title: month.format('MMMM YYYY'),
+      value: month.format('YYYY-MM'),
+    })
+  }
+  return options
+})
+
+const openConfig = async () => {
+  try {
+    const data = await authFetch<{
+      lateToleranceMinutes: number
+      attendanceClosedThrough: string
+    }>(API_PATHS.attendance.config)
+    tolerance.value = data.lateToleranceMinutes ?? 5
+    closedThrough.value = data.attendanceClosedThrough ?? ''
+  } catch {
+    tolerance.value = dashboard.value?.lateToleranceMinutes ?? 5
+    closedThrough.value = ''
+  }
+  configOpen.value = true
+}
+
+const saveConfig = async () => {
+  savingConfig.value = true
+  try {
+    const data = await authFetch<{
+      lateToleranceMinutes: number
+      recomputed?: number
+    }>(API_PATHS.attendance.config, {
+      method: 'PUT',
+      body: {
+        lateToleranceMinutes: tolerance.value,
+        attendanceClosedThrough: closedThrough.value,
+      },
+    })
+    configOpen.value = false
+    snackbar.success(
+      data.recomputed
+        ? `Tolerancia actualizada · ${data.recomputed} registro(s) no liquidados recalculados`
+        : 'Tolerancia actualizada',
+    )
+    dashboardCache.clear()
+    fetchDashboard()
+    load()
+  } catch {
+    snackbar.error('No se pudo guardar la tolerancia.')
+  } finally {
+    savingConfig.value = false
+  }
+}
 
 const statusDonutOptions = computed(() => {
   const counts = dashboard.value?.statusCounts ?? {}
@@ -753,6 +817,14 @@ const handleView = (record: IAttendanceRecord) =>
             @update:model-value="onDateChange('dateTo', $event)"
           />
         </template>
+        <template #actions>
+          <v-btn
+            icon="mdi-cog-outline"
+            variant="text"
+            title="Configuración de asistencia"
+            @click="openConfig"
+          />
+        </template>
       </CommonListToolbar>
 
       <v-tabs v-model="activeTab" color="primary" class="mb-3">
@@ -937,6 +1009,50 @@ const handleView = (record: IAttendanceRecord) =>
             @click="removeRecord"
           >
             Eliminar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="configOpen" max-width="420">
+      <v-card>
+        <v-card-title class="text-subtitle-1 font-weight-bold">
+          Configuración de asistencia
+        </v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model.number="tolerance"
+            label="Tolerancia de llegada tarde (minutos)"
+            type="number"
+            min="0"
+            max="120"
+            variant="outlined"
+            density="compact"
+            hint="Se considera tarde cuando la entrada supera el inicio del turno en más de esta tolerancia. Solo afecta períodos abiertos."
+            persistent-hint
+          />
+          <v-select
+            v-model="closedThrough"
+            :items="closureOptions"
+            label="Cierre de asistencia"
+            variant="outlined"
+            density="compact"
+            class="mt-4"
+            hint="Las asistencias de ese mes o anteriores quedan congeladas (aplica aunque el cliente no tenga nómina)."
+            persistent-hint
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="configOpen = false">Cancelar</v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="savingConfig"
+            :disabled="savingConfig"
+            @click="saveConfig"
+          >
+            Guardar
           </v-btn>
         </v-card-actions>
       </v-card>

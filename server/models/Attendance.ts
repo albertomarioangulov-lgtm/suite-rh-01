@@ -4,6 +4,10 @@ import { Company } from '~~/server/models/Company'
 import { Employee } from '~~/server/models/Employee'
 import { Shift } from '~~/server/models/Shift'
 import {
+  computeLateness,
+  getShiftStartForDay,
+} from '~~/shared/utils/attendance-helpers'
+import {
   getWeekRange,
   splitDayNightHours,
   splitOvertimeFromEnd,
@@ -44,6 +48,8 @@ const AttendanceSchema = new Schema(
     /** Llegada tarde vs. inicio del turno asignado (calculado al guardar). */
     isLate: { type: Boolean, default: false },
     lateMinutes: { type: Number, default: 0 },
+    /** Tolerancia usada al evaluar la tardanza (congela períodos pasados). */
+    lateToleranceMinutes: { type: Number, default: 5, min: 0, max: 120 },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
@@ -107,9 +113,9 @@ AttendanceSchema.pre('save', async function () {
   this.nightSurcharge = Math.round(nightHours * NIGHT_SURCHARGE_RATE * 100) / 100
 
   // Llegadas tardías: compara la hora de entrada con el inicio del turno
-  // asignado al empleado para ese día (primer rango del día).
-  let isLate = false
-  let lateMinutes = 0
+  // asignado (primer rango del día), con tolerancia configurable.
+  const tolerance = company?.workSchedule?.lateToleranceMinutes ?? 5
+  let shiftStartTime = ''
   const employeeRecord = await Employee.findById(this.employee).select(
     'assignedShift',
   )
@@ -117,25 +123,18 @@ AttendanceSchema.pre('save', async function () {
     const shift = await Shift.findById(employeeRecord.assignedShift)
       .select('days')
       .lean()
-    const day = (shift?.days ?? []).find(
-      (entry) => entry.dayOfWeek === this.clockIn.getDay(),
+    shiftStartTime = getShiftStartForDay(
+      (shift?.days ?? []) as Array<{
+        dayOfWeek: number
+        ranges?: Array<{ startTime?: string }>
+      }>,
+      this.clockIn.getDay(),
     )
-    const startTime = (day?.ranges?.[0] as { startTime?: string } | undefined)
-      ?.startTime
-    if (startTime) {
-      const [hour, minute] = startTime.split(':').map(Number)
-      const shiftStartMinutes = (hour ?? 0) * 60 + (minute ?? 0)
-      const clockInMinutes =
-        this.clockIn.getHours() * 60 + this.clockIn.getMinutes()
-      const diff = clockInMinutes - shiftStartMinutes
-      if (diff > 0) {
-        isLate = true
-        lateMinutes = diff
-      }
-    }
   }
-  this.isLate = isLate
-  this.lateMinutes = lateMinutes
+  const lateness = computeLateness(this.clockIn, shiftStartTime, tolerance)
+  this.isLate = lateness.isLate
+  this.lateMinutes = lateness.lateMinutes
+  this.lateToleranceMinutes = tolerance
 
   if (!this.tenantId && this.employee) {
     const employee = await Employee.findById(this.employee)

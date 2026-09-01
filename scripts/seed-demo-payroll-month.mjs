@@ -26,6 +26,7 @@ import {
   splitDayNightHours,
   splitOvertimeFromEnd,
 } from '../shared/utils/datetime-helpers.ts'
+import { computeLateness } from '../shared/utils/attendance-helpers.ts'
 import {
   ABSENCE_TYPES,
   DEFAULT_EMPLOYER_PAID_INCAPACIDAD_DAYS,
@@ -1089,6 +1090,12 @@ const buildAttendance = (employee, profile, workday) => {
   const clockOut = new Date(
     `${dateStr}T${isAfternoon ? (hasOvertime ? '22:00' : '21:00') : hasOvertime ? '18:00' : '16:00'}:00-05:00`,
   )
+  const tolerance = 5
+  const { isLate, lateMinutes } = computeLateness(
+    clockIn,
+    isAfternoon ? '13:00' : '08:00',
+    tolerance,
+  )
   const { dayHours, nightHours } = splitDayNightHours(
     clockIn,
     clockOut,
@@ -1115,6 +1122,9 @@ const buildAttendance = (employee, profile, workday) => {
     overtimeNightHours,
     nightSurcharge: round2(nightHours * NIGHT_SURCHARGE_RATE),
     assignedShift: isAfternoon ? afternoonShiftId : dayShiftId,
+    isLate,
+    lateMinutes,
+    lateToleranceMinutes: tolerance,
     status: 'approved',
     observations: hasOvertime ? 'Jornada con horas extra' : undefined,
     recordedBy: admin?._id ?? null,

@@ -6,7 +6,13 @@ import {
 import { Alert } from '~~/server/models/Alert'
 import { Company } from '~~/server/models/Company'
 import { Employee } from '~~/server/models/Employee'
+import { Payroll } from '~~/server/models/Payroll'
+import { Shift } from '~~/server/models/Shift'
 import { publishAlert } from '~~/server/utils/alert-stream'
+import {
+  computeLateness,
+  getShiftStartForDay,
+} from '~~/shared/utils/attendance-helpers'
 import {
   getWeekRange,
   splitDayNightHours,
@@ -144,7 +150,7 @@ export const validateWeeklyLimit = async (
   date: Date,
   excludeId?: string,
 ) => {
-  const [weekStart, weekEnd] = getWeekRange(date)
+  const { start: weekStart, end: weekEnd } = getWeekRange(date)
   const records = await Attendance.find({
     employee: employeeId,
     date: { $gte: weekStart, $lte: weekEnd },
@@ -253,4 +259,89 @@ export const createAttendance = async (
     }
     throw error
   }
+}
+
+/**
+ * Recalcula las tardanzas SOLO en asistencias de períodos NO liquidados
+ * (sin nómina aprobada/pagada que las cubra). Los períodos ya cerrados
+ * conservan su evaluación original (snapshot de tolerancia): un cambio de
+ * tolerancia nunca altera meses ya liquidados.
+ */
+export const recomputeLatenessForUnsettled = async (
+  tenantId: string,
+  tolerance: number,
+) => {
+  const settledPayrolls = await Payroll.find({
+    tenantId,
+    status: { $in: ['approved', 'paid'] },
+  })
+    .select('periodStart periodEnd')
+    .lean()
+
+  const settledRanges = settledPayrolls.map((payroll) => ({
+    date: { $gte: payroll.periodStart, $lte: payroll.periodEnd },
+  }))
+
+  // Cierre mensual de asistencia (independiente de nómina): congela desde
+  // el inicio hasta el final del mes cerrado. Aplica a clientes sin nómina.
+  const company = await Company.getConfig()
+  const closedThrough = company?.attendanceClosedThrough ?? ''
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(closedThrough)) {
+    const [year, month] = closedThrough.split('-').map(Number)
+    const boundary = new Date(Date.UTC(year as number, (month as number) - 1 + 1, 1))
+    settledRanges.push({ date: { $lt: boundary } })
+  }
+
+  const filter: Record<string, unknown> = { tenantId }
+  if (settledRanges.length) filter.date = { $nor: settledRanges }
+
+  const [records, employees, shifts] = await Promise.all([
+    Attendance.find(filter)
+      .select('employee clockIn assignedShift')
+      .lean(),
+    Employee.find({ tenantId }).select('assignedShift').lean(),
+    Shift.find({ tenantId }).select('days').lean(),
+  ])
+  const employeeById = new Map(
+    employees.map((employee) => [String(employee._id), employee]),
+  )
+  const shiftById = new Map(shifts.map((shift) => [String(shift._id), shift]))
+
+  const ops: Array<{
+    updateOne: {
+      filter: { _id: unknown }
+      update: { $set: Record<string, unknown> }
+    }
+  }> = []
+  for (const record of records) {
+    const employee = employeeById.get(String(record.employee))
+    const shift = employee?.assignedShift
+      ? shiftById.get(String(employee.assignedShift))
+      : null
+    const shiftStart = getShiftStartForDay(
+      (shift?.days ?? []) as Array<{
+        dayOfWeek: number
+        ranges?: Array<{ startTime?: string }>
+      }>,
+      record.clockIn.getDay(),
+    )
+    const lateness = computeLateness(record.clockIn, shiftStart, tolerance)
+    ops.push({
+      updateOne: {
+        filter: { _id: record._id },
+        update: {
+          $set: {
+            isLate: lateness.isLate,
+            lateMinutes: lateness.lateMinutes,
+            lateToleranceMinutes: tolerance,
+          },
+        },
+      },
+    })
+  }
+
+  if (ops.length) {
+    await Attendance.bulkWrite(ops, { ordered: false })
+  }
+  return ops.length
 }

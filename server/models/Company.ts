@@ -21,6 +21,8 @@ const CompanySchema = new Schema(
       maxDailyHours: { type: Number, default: 9, min: 1, max: 24 },
       nightShiftStart: { type: String, default: '19:00' },
       nightShiftEnd: { type: String, default: '06:00' },
+      /** Tolerancia de llegada tarde (minutos) antes de marcar tardanza. */
+      lateToleranceMinutes: { type: Number, default: 5, min: 0, max: 120 },
     },
     /**
      * Políticas de ausencias y licencias por empresa.
@@ -40,6 +42,13 @@ const CompanySchema = new Schema(
       /** ¿Exigir soporte documental para aprobar ausencias? */
       requireSupportDocument: { type: Boolean, default: false },
     },
+    /**
+     * Cierre mensual de asistencia ('YYYY-MM'): las asistencias de ese mes
+     * o anteriores quedan congeladas (no se recalculan con cambios de
+     * tolerancia). Independiente de la nómina: aplica también a clientes
+     * sin módulo de nómina.
+     */
+    attendanceClosedThrough: { type: String, default: '', trim: true },
     active: { type: Boolean, default: true },
   },
   { timestamps: true, versionKey: false },

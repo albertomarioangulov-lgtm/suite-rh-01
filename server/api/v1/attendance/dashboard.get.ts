@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import { Attendance } from '~~/server/models/Attendance'
 import { Employee } from '~~/server/models/Employee'
+import { Company } from '~~/server/models/Company'
 import { ROLES } from '~~/shared/auth'
 import { getTenantId, requireFlag } from '~~/server/utils/tenant'
 import { FEATURE_FLAGS } from '~~/shared/feature-flags'
@@ -36,8 +37,12 @@ export default defineEventHandler(async (event) => {
     statusCounts: { pending: 0, approved: 0, rejected: 0 },
     daily: [],
     topEmployees: [],
+    lateToleranceMinutes: 5,
   }
   if (!tenantId) return empty
+
+  const company = await Company.getConfig()
+  const tolerance = company?.workSchedule?.lateToleranceMinutes ?? 5
 
   const { dateFrom, dateTo, employeeId, status, search } = getQuery(event) as
     Record<string, string | undefined>
@@ -104,6 +109,8 @@ export default defineEventHandler(async (event) => {
           overtimeDay: { $sum: { $ifNull: ['$overtimeDayHours', 0] } },
           overtimeNight: { $sum: { $ifNull: ['$overtimeNightHours', 0] } },
           nightSurcharge: { $sum: { $ifNull: ['$nightSurcharge', 0] } },
+          // Solo cuenta registros ya evaluados como tarde (congelado al
+          // guardar/recalcular; la tolerancia actual no altera períodos pasados).
           lateCount: { $sum: { $ifNull: ['$isLate', false] } },
         },
       },
@@ -224,5 +231,6 @@ export default defineEventHandler(async (event) => {
       overtimeNight: round2(item.overtimeNight),
     })),
     topEmployees,
+    lateToleranceMinutes: tolerance,
   }
 })
