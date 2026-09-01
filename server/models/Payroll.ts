@@ -79,6 +79,29 @@ const PayrollEmployeeSchema = new Schema(
   { _id: false },
 )
 
+const DianTransmissionSchema = new Schema(
+  {
+    employee: {
+      type: Schema.Types.ObjectId,
+      ref: 'Employee',
+      required: true,
+    },
+    /** Nombre del ZIP enviado (formato del anexo: z + NIT + a + consecutivo). */
+    fileName: { type: String, default: '' },
+    environment: { type: Number, enum: [1, 2], default: 2 },
+    isValid: { type: Boolean, default: false },
+    statusCode: { type: String, default: '' },
+    statusDescription: { type: String, default: '' },
+    statusMessage: { type: String, default: '' },
+    errors: { type: [String], default: [] },
+    /** CUNE/trackId devuelto por la DIAN (XmlDocumentKey). */
+    xmlDocumentKey: { type: String, default: '' },
+    transmittedBy: { ref: 'User', type: Schema.Types.ObjectId },
+    transmittedAt: { type: Date, default: () => new Date() },
+  },
+  { _id: false },
+)
+
 const PayrollSchema = new Schema(
   {
     tenantId: {
@@ -111,6 +134,8 @@ const PayrollSchema = new Schema(
     approvedBy: { ref: 'User', type: Schema.Types.ObjectId },
     approvedAt: { type: Date },
     paidAt: { type: Date },
+    /** Historial de transmisiones al VPFE de la DIAN (SendNominaSync). */
+    dianTransmissions: { type: [DianTransmissionSchema], default: [] },
   },
   { timestamps: true, versionKey: false },
 )
