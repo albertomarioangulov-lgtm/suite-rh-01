@@ -3,6 +3,7 @@ import { ROLES } from '~~/shared/auth'
 import { formatDate } from '~~/shared/utils/datetime-helpers'
 import { formatCOP } from '~/utils/number-helpers'
 import type { IPayrollEntry } from '~/composables/states/usePayrollState'
+import { API_PATHS } from '~/utils/api-paths'
 import VChart from 'vue-echarts'
 
 definePageMeta({
@@ -122,6 +123,20 @@ const onRowClick = (
   data: { item?: { entry?: IPayrollEntry } },
 ) => {
   if (data?.item?.entry) openBreakdown(data.item.entry)
+}
+
+const downloadCen = (entry: IPayrollEntry) => {
+  const employeeId =
+    typeof entry.employee === 'object' && entry.employee
+      ? String(entry.employee._id)
+      : String(entry.employee)
+  const url = `${API_PATHS.payroll.cen(payrollId.value)}?employeeId=${employeeId}`
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = ''
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
 }
 
 const employeeRows = computed(() =>
@@ -569,6 +584,14 @@ const topEmployeesOptions = computed(() => {
           <span class="font-weight-medium">{{ formatCOP(item.neto) }}</span>
         </template>
         <template #[`item.actions`]="{ item }">
+          <v-btn
+            icon="mdi-file-xml-box"
+            size="small"
+            variant="text"
+            color="teal"
+            title="Descargar CEN XML"
+            @click="downloadCen(item.entry)"
+          />
           <v-btn
             icon="mdi-file-eye-outline"
             size="small"

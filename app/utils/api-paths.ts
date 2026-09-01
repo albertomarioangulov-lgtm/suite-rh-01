@@ -65,6 +65,7 @@ export const API_PATHS = {
     list: `${API_BASE}/payroll`,
     dashboard: `${API_BASE}/payroll/dashboard`,
     detail: (id: string) => `${API_BASE}/payroll/${id}`,
+    cen: (id: string) => `${API_BASE}/payroll/${id}/cen`,
     approve: (id: string) => `${API_BASE}/payroll/${id}/approve`,
     pay: (id: string) => `${API_BASE}/payroll/${id}/pay`,
     cancel: (id: string) => `${API_BASE}/payroll/${id}/cancel`,
