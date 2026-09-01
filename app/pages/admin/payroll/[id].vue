@@ -203,6 +203,15 @@ const downloadAllCen = () => {
   anchor.remove()
 }
 
+const downloadNominaExport = () => {
+  const anchor = document.createElement('a')
+  anchor.href = API_PATHS.payroll.nominaExport(payrollId.value)
+  anchor.download = ''
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+}
+
 const employeeRows = computed(() =>
   filteredEmployees.value.map((entry) => ({
     entry,
@@ -466,6 +475,15 @@ const topEmployeesOptions = computed(() => {
           @click="downloadAllCen"
         >
           CEN (ZIP)
+        </v-btn>
+        <v-btn
+          v-if="canAdjust && currentPayroll.employees?.length"
+          variant="text"
+          color="green"
+          prepend-icon="mdi-file-excel-outline"
+          @click="downloadNominaExport"
+        >
+          Planilla DIAN
         </v-btn>
         <v-btn
           v-if="canApprove && currentPayroll.status === 'draft'"
