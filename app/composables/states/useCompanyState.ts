@@ -15,6 +15,10 @@ export interface ICompanyView {
   softwareId?: string
   softwareSC?: string
   softwarePin?: string
+  /** true si hay un certificado .p12 configurado para firmar el DSNE. */
+  cenCertificateConfigured?: boolean
+  /** Rol del firmante del DSNE: supplier (empleador) o thirdparty (proveedor). */
+  cenSignerRole?: 'supplier' | 'thirdparty'
   /** Método de pago del DSNE (tabla 5.3.3.2). */
   paymentMethod?: number
   taxRegime: 'simplified' | 'common'

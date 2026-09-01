@@ -4,6 +4,9 @@ import { ensureDefaultCycle } from '~~/server/services/payroll-cycle.service'
 import type { PayrollFrequency } from '~~/shared/payroll-period'
 import type { companyUpdateSchema, legalParamsSchema } from '~~/server/utils/validation-schemas'
 import type { z } from 'zod'
+import {
+  encryptDianSecret,
+} from '~~/server/utils/dian-crypto'
 
 type CompanyUpdateInput = z.infer<typeof companyUpdateSchema>
 type LegalParamsInput = z.infer<typeof legalParamsSchema>
@@ -15,13 +18,68 @@ interface IAbsencePolicies {
   requireSupportDocument?: boolean
 }
 
+const getCertSecret = (): string =>
+  String(useRuntimeConfig().dianCertSecret || '')
+
+/** Devuelve la configuración sin exponer el .p12 ni su contraseña. */
+const toSafeCompany = (company: {
+  toJSON: () => Record<string, unknown> & {
+    cenCertificateP12?: string
+    cenCertificatePassword?: string
+  }
+}) => {
+  const raw = company.toJSON()
+  const { cenCertificateP12, cenCertificatePassword, ...safe } = raw
+  return {
+    ...safe,
+    cenCertificateConfigured: Boolean(cenCertificateP12),
+  }
+}
+
 export const getCompanyConfig = async () => {
   const company = await Company.getConfig()
   if (!company) {
     // Estado vacío esperado (primera configuración): null con 200.
     return null
   }
-  return company.toJSON()
+  return toSafeCompany(company)
+}
+
+const applyCertificate = async (
+  company: InstanceType<typeof Company>,
+  data: CompanyUpdateInput,
+  changes: Record<string, { before: unknown; after: unknown }>,
+): Promise<void> => {
+  if (data.cenSignerRole !== undefined) {
+    changes.cenSignerRole = {
+      before: company.cenSignerRole,
+      after: data.cenSignerRole,
+    }
+    company.cenSignerRole = data.cenSignerRole
+  }
+  if (data.cenCertificateClear) {
+    if (company.cenCertificateP12) {
+      changes.cenCertificateP12 = {
+        before: 'configurado',
+        after: 'eliminado',
+      }
+    }
+    company.cenCertificateP12 = ''
+    company.cenCertificatePassword = ''
+    return
+  }
+  if (data.cenCertificateP12) {
+    const secret = getCertSecret()
+    changes.cenCertificateP12 = {
+      before: company.cenCertificateP12 ? 'configurado' : 'no configurado',
+      after: 'nuevo certificado',
+    }
+    company.cenCertificateP12 = encryptDianSecret(data.cenCertificateP12, secret)
+    company.cenCertificatePassword = encryptDianSecret(
+      data.cenCertificatePassword ?? '',
+      secret,
+    )
+  }
 }
 
 /**
@@ -45,6 +103,13 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       softwareId: data.softwareId || '',
       softwareSC: data.softwareSC || '',
       softwarePin: data.softwarePin || '',
+      cenSignerRole: data.cenSignerRole || 'supplier',
+      cenCertificateP12: data.cenCertificateP12
+        ? encryptDianSecret(data.cenCertificateP12, getCertSecret())
+        : '',
+      cenCertificatePassword: data.cenCertificateP12
+        ? encryptDianSecret(data.cenCertificatePassword ?? '', getCertSecret())
+        : '',
       paymentMethod: data.paymentMethod ?? 42,
       taxRegime: data.taxRegime || 'simplified',
       workSchedule: {
@@ -61,7 +126,7 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       String(company._id),
       (data.payrollFrequency as PayrollFrequency) ?? 'mensual',
     )
-    return { company: company.toJSON(), changes, created }
+    return { company: toSafeCompany(company), changes, created }
   }
 
   if (data.name !== undefined) {
@@ -126,6 +191,7 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
     }
     company.softwarePin = data.softwarePin ?? ''
   }
+  await applyCertificate(company, data, changes)
   if (data.paymentMethod !== undefined) {
     changes.paymentMethod = {
       before: company.paymentMethod,
@@ -185,7 +251,7 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
   }
 
   await company.save()
-  return { company: company.toJSON(), changes, created }
+  return { company: toSafeCompany(company), changes, created }
 }
 
 export const getCurrentLegalParams = async () => {

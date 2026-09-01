@@ -6,6 +6,7 @@ import { ROLES } from '~~/shared/auth'
 import { getTenantId, requireFlag } from '~~/server/utils/tenant'
 import { FEATURE_FLAGS } from '~~/shared/feature-flags'
 import { buildCenForEmployee } from '~~/server/services/cen.service'
+import { signCenWithCompany } from '~~/server/services/cen-signature.service'
 
 /**
  * Descarga todos los DSNE de la nómina en un ZIP. Si algún empleado falla,
@@ -65,7 +66,8 @@ export default defineEventHandler(async (event) => {
         employee,
         entry,
       })
-      files.push({ name: filename, content: Buffer.from(xml, 'utf-8') })
+      const { xml: finalXml } = signCenWithCompany(xml, company)
+      files.push({ name: filename, content: Buffer.from(finalXml, 'utf-8') })
     } catch (err) {
       const message =
         (err as { message?: string })?.message ?? 'Error al generar el CEN'

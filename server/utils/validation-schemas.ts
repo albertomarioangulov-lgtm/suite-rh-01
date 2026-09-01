@@ -113,6 +113,13 @@ export const companyUpdateSchema = z.object({
   softwareId: z.string().trim().max(80).optional(),
   softwareSC: z.string().trim().max(200).optional(),
   softwarePin: z.string().trim().max(200).optional(),
+  cenSignerRole: z.enum(['supplier', 'thirdparty']).optional(),
+  /** Certificado .p12 en base64 (se cifra al guardar). */
+  cenCertificateP12: z.string().max(2_000_000, 'El .p12 es demasiado grande').optional(),
+  /** Contraseña del .p12 (se cifra al guardar). */
+  cenCertificatePassword: z.string().max(300).optional(),
+  /** true = elimina el certificado de firma configurado. */
+  cenCertificateClear: z.boolean().optional(),
   paymentMethod: z.number().int().min(1).max(98).optional(),
   taxRegime: z.enum(['simplified', 'common']).optional(),
   workSchedule: z

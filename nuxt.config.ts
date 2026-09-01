@@ -98,6 +98,8 @@ export default defineNuxtConfig({
     brevoApiKey: process.env.BREVO_API_KEY || '',
     brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || '',
     brevoWebhookSecret: process.env.BREVO_WEBHOOK_SECRET || '',
+    /** Secreto para cifrar el certificado .p12 y su contraseña (AES-256-GCM). */
+    dianCertSecret: process.env.DIAN_CERT_SECRET || '',
     appUrl: process.env.APP_URL || 'http://localhost:3000',
 
     // Sesión sellada de nuxt-auth-utils (cookie httpOnly cifrada).

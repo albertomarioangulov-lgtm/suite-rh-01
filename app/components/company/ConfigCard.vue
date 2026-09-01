@@ -84,6 +84,11 @@ const methodLabel: Record<number, string> = {
         prepend-icon="mdi-application-cog-outline"
       />
       <v-list-item
+        title="Certificado de firma (DSNE)"
+        :subtitle="company.cenCertificateConfigured ? `Configurado · Firma: ${company.cenSignerRole === 'thirdparty' ? 'proveedor (thirdparty)' : 'empleador (supplier)'}` : 'No configurado — el XML se descarga sin firma'"
+        prepend-icon="mdi-certificate-outline"
+      />
+      <v-list-item
         title="Jornada"
         :subtitle="`Máx ${company.workSchedule.maxWeeklyHours} h/semana · ${company.workSchedule.minDailyHours}–${company.workSchedule.maxDailyHours} h/día`"
         prepend-icon="mdi-clock-outline"

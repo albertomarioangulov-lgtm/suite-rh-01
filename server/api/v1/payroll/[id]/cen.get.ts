@@ -5,6 +5,7 @@ import { ROLES } from '~~/shared/auth'
 import { getTenantId, requireFlag } from '~~/server/utils/tenant'
 import { FEATURE_FLAGS } from '~~/shared/feature-flags'
 import { buildCenForEmployee } from '~~/server/services/cen.service'
+import { signCenWithCompany } from '~~/server/services/cen-signature.service'
 
 /**
  * Descarga el Documento Soporte de Pago de Nómina Electrónica (DSNE) de un
@@ -58,8 +59,9 @@ export default defineEventHandler(async (event) => {
     employee,
     entry,
   })
+  const { xml: finalXml } = signCenWithCompany(xml, company)
 
   setHeader(event, 'content-type', 'application/xml; charset=utf-8')
   setHeader(event, 'content-disposition', `attachment; filename="${filename}"`)
-  return xml
+  return finalXml
 })

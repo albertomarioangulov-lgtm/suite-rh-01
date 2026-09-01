@@ -65,6 +65,22 @@ const CompanySchema = new Schema(
     softwareSC: { type: String, trim: true, default: '' },
     /** PIN del software asignado al activarlo ante la DIAN (privado, CUNE/SC). */
     softwarePin: { type: String, trim: true, default: '' },
+    /**
+     * Certificado digital .p12 (base64) cifrado con AES-256-GCM usando
+     * NUXT_DIAN_CERT_SECRET. Se usa para firmar el DSNE (XAdES-EPES).
+     */
+    cenCertificateP12: { type: String, default: '' },
+    /** Contraseña del .p12 cifrada con AES-256-GCM (nunca se expone). */
+    cenCertificatePassword: { type: String, default: '' },
+    /**
+     * Rol del firmante: supplier (firma el empleador) o thirdparty (firma el
+     * proveedor tecnológico autorizado). Anexo técnico DSNE numeral 7.12.
+     */
+    cenSignerRole: {
+      type: String,
+      enum: ['supplier', 'thirdparty'],
+      default: 'supplier',
+    },
     /** Método de pago del DSNE (tabla 5.3.3.2). Default: 42 = consignación bancaria. */
     paymentMethod: { type: Number, default: 42 },
     /** Numeración correlativa anual del CEN por empleador. */

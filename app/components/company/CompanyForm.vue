@@ -30,6 +30,10 @@ const formState = reactive({
   softwareId: props.company?.softwareId ?? '',
   softwareSC: props.company?.softwareSC ?? '',
   softwarePin: props.company?.softwarePin ?? '',
+  cenSignerRole: props.company?.cenSignerRole ?? 'supplier',
+  cenCertificateFile: null as File | null,
+  cenCertificatePassword: '',
+  cenCertificateClear: false,
   paymentMethod: props.company?.paymentMethod ?? 42,
   taxRegime: props.company?.taxRegime ?? 'simplified',
   maxWeeklyHours: props.company?.workSchedule.maxWeeklyHours ?? 42,
@@ -57,6 +61,42 @@ const onLogoFile = (file: File | null) => {
     formState.logo = String(reader.result ?? '')
   }
   reader.readAsDataURL(file)
+}
+
+const onCertificateFile = (file: File | null) => {
+  formState.cenCertificateFile = file
+  formState.cenCertificateClear = false
+}
+
+const readFileAsBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const result = String(reader.result ?? '')
+      const base64 = result.includes(',') ? result.split(',')[1] : result
+      resolve(base64)
+    }
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo .p12'))
+    reader.readAsDataURL(file)
+  })
+
+const downloadTestCertificate = async () => {
+  error.value = ''
+  try {
+    const { authFetch } = useAuthState()
+    const blob = await authFetch('/api/v1/company/cen-test-cert', {
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(blob as Blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'suite-rh-certificado-prueba.p12'
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    error.value =
+      'No se pudo generar el certificado de prueba. Revisa tu sesión e inténtalo de nuevo.'
+  }
 }
 
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
@@ -114,6 +154,10 @@ const save = async () => {
   saving.value = true
   error.value = ''
   try {
+    let cenCertificateP12: string | undefined
+    if (formState.cenCertificateFile) {
+      cenCertificateP12 = await readFileAsBase64(formState.cenCertificateFile)
+    }
     emit('saved', {
       name: formState.name.trim(),
       nit: formState.nit.trim(),
@@ -125,6 +169,13 @@ const save = async () => {
       softwareId: formState.softwareId.trim() || undefined,
       softwareSC: formState.softwareSC.trim() || undefined,
       softwarePin: formState.softwarePin.trim() || undefined,
+      cenSignerRole: formState.cenSignerRole,
+      cenCertificateP12,
+      cenCertificatePassword:
+        cenCertificateP12 && formState.cenCertificatePassword.trim()
+          ? formState.cenCertificatePassword.trim()
+          : undefined,
+      cenCertificateClear: formState.cenCertificateClear || undefined,
       paymentMethod: Number(formState.paymentMethod),
       taxRegime: formState.taxRegime,
       workSchedule: {
@@ -298,6 +349,69 @@ const save = async () => {
           hint="Lo asignaste al activar el software. Es privado: se usa para calcular el CUNE y el SoftwareSC, no va en el XML"
           persistent-hint
         />
+      </v-col>
+    </v-row>
+
+    <h2 class="text-subtitle-1 font-weight-bold mb-2">Firma digital del DSNE (XAdES-EPES)</h2>
+    <v-row>
+      <v-col cols="12" sm="6">
+        <v-file-input
+          :model-value="formState.cenCertificateFile"
+          label="Certificado digital (.p12)"
+          accept=".p12,.pfx"
+          prepend-icon="mdi-certificate-outline"
+          class="mb-3"
+          hint="Emitido por una entidad de certificación abierta avalada por la ONAC. Incluye clave privada y cadena (hoja, AC y raíz)."
+          persistent-hint
+          @update:model-value="onCertificateFile"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          v-model="formState.cenCertificatePassword"
+          label="Contraseña del certificado"
+          type="password"
+          class="mb-3"
+          hint="Se cifra al guardar (AES-256-GCM). No la necesitas para descargar un XML ya firmado."
+          persistent-hint
+          :disabled="!formState.cenCertificateFile"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          v-model="formState.cenSignerRole"
+          :items="[
+            { title: 'El empleador firma (supplier)', value: 'supplier' },
+            { title: 'El proveedor tecnológico firma (thirdparty)', value: 'thirdparty' },
+          ]"
+          label="Rol del firmante"
+          class="mb-3"
+          hint="Numeral 7.12 del anexo técnico DSNE"
+          persistent-hint
+        />
+      </v-col>
+      <v-col
+        v-if="company?.cenCertificateConfigured"
+        cols="12"
+        sm="6"
+        class="d-flex align-center"
+      >
+        <v-checkbox
+          v-model="formState.cenCertificateClear"
+          label="Quitar el certificado configurado"
+          class="mb-3"
+          :disabled="Boolean(formState.cenCertificateFile)"
+        />
+      </v-col>
+      <v-col cols="12">
+        <v-btn
+          variant="text"
+          prepend-icon="mdi-download-outline"
+          class="mb-3"
+          @click="downloadTestCertificate"
+        >
+          Descargar certificado de prueba (.p12) para habilitación
+        </v-btn>
       </v-col>
     </v-row>
 
