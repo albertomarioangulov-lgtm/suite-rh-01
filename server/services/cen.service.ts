@@ -1,12 +1,13 @@
 /**
  * Documento Soporte de Pago de Nómina Electrónica (DSNE) — estructura DIAN.
  *
- * Fase M2: estructura oficial `NominaIndividual` (TipoXML 102), dígito de
- * verificación del NIT (módulo 11 DIAN) y numeración correlativa anual.
+ * Fase M2/M3: estructura oficial `NominaIndividual` (TipoXML 102), dígito de
+ * verificación del NIT (módulo 11 DIAN), numeración correlativa anual, CUNE
+ * (SHA-384), SoftwareSC y código QR del DSNE.
  *
- * Pendiente (M3/M4): cálculo del CUNE (SHA-384), código QR, firma
- * XAdES-EPES (Resolución 000013 de 2021, art. 5.12) y transmisión al
- * servicio VPFE de la DIAN. El XSD oficial (V1.0.6) y los esquemas UBL
+ * La firma XAdES-EPES (M4, Resolución 000013 de 2021) se aplica en
+ * `server/services/cen-signature.service.ts` cuando la empresa tiene un
+ * certificado .p12 configurado. El XSD oficial (V1.0.6) y los esquemas UBL
  * asociados están versionados en `server/assets/dian/` y el XML generado
  * valida contra ellos (ver README de esa carpeta).
  */
