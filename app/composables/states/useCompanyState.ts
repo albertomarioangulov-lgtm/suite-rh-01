@@ -14,6 +14,7 @@ export interface ICompanyView {
   cenEnvironment: 1 | 2
   softwareId?: string
   softwareSC?: string
+  softwarePin?: string
   /** Método de pago del DSNE (tabla 5.3.3.2). */
   paymentMethod?: number
   taxRegime: 'simplified' | 'common'

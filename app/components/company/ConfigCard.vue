@@ -80,7 +80,7 @@ const methodLabel: Record<number, string> = {
       />
       <v-list-item
         title="Software DIAN"
-        :subtitle="company.softwareId && company.softwareSC ? `${company.softwareId} · SC configurado` : 'No configurado — requerido antes de transmitir a la DIAN'"
+        :subtitle="company.softwareId && company.softwarePin ? `${company.softwareId} · PIN configurado` : 'No configurado — requerido antes de transmitir a la DIAN'"
         prepend-icon="mdi-application-cog-outline"
       />
       <v-list-item

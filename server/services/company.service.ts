@@ -44,6 +44,7 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       cenEnvironment: data.cenEnvironment ?? 2,
       softwareId: data.softwareId || '',
       softwareSC: data.softwareSC || '',
+      softwarePin: data.softwarePin || '',
       paymentMethod: data.paymentMethod ?? 42,
       taxRegime: data.taxRegime || 'simplified',
       workSchedule: {
@@ -117,6 +118,13 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       after: data.softwareSC,
     }
     company.softwareSC = data.softwareSC ?? ''
+  }
+  if (data.softwarePin !== undefined) {
+    changes.softwarePin = {
+      before: company.softwarePin,
+      after: data.softwarePin,
+    }
+    company.softwarePin = data.softwarePin ?? ''
   }
   if (data.paymentMethod !== undefined) {
     changes.paymentMethod = {

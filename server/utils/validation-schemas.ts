@@ -112,6 +112,7 @@ export const companyUpdateSchema = z.object({
   cenEnvironment: z.union([z.literal(1), z.literal(2)]).optional(),
   softwareId: z.string().trim().max(80).optional(),
   softwareSC: z.string().trim().max(200).optional(),
+  softwarePin: z.string().trim().max(200).optional(),
   paymentMethod: z.number().int().min(1).max(98).optional(),
   taxRegime: z.enum(['simplified', 'common']).optional(),
   workSchedule: z

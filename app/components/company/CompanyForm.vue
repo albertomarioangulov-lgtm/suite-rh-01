@@ -29,6 +29,7 @@ const formState = reactive({
   cenEnvironment: props.company?.cenEnvironment ?? 2,
   softwareId: props.company?.softwareId ?? '',
   softwareSC: props.company?.softwareSC ?? '',
+  softwarePin: props.company?.softwarePin ?? '',
   paymentMethod: props.company?.paymentMethod ?? 42,
   taxRegime: props.company?.taxRegime ?? 'simplified',
   maxWeeklyHours: props.company?.workSchedule.maxWeeklyHours ?? 42,
@@ -123,6 +124,7 @@ const save = async () => {
       cenEnvironment: Number(formState.cenEnvironment),
       softwareId: formState.softwareId.trim() || undefined,
       softwareSC: formState.softwareSC.trim() || undefined,
+      softwarePin: formState.softwarePin.trim() || undefined,
       paymentMethod: Number(formState.paymentMethod),
       taxRegime: formState.taxRegime,
       workSchedule: {
@@ -285,6 +287,15 @@ const save = async () => {
           label="Código de seguridad del software (DIAN)"
           class="mb-3"
           hint="SoftwareSC generado por la DIAN"
+          persistent-hint
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          v-model="formState.softwarePin"
+          label="PIN del software (DIAN)"
+          class="mb-3"
+          hint="Lo asignaste al activar el software. Es privado: se usa para calcular el CUNE y el SoftwareSC, no va en el XML"
           persistent-hint
         />
       </v-col>

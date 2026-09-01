@@ -63,6 +63,8 @@ const CompanySchema = new Schema(
     softwareId: { type: String, trim: true, default: '' },
     /** Código de seguridad del software ante la DIAN (SoftwareSC). */
     softwareSC: { type: String, trim: true, default: '' },
+    /** PIN del software asignado al activarlo ante la DIAN (privado, CUNE/SC). */
+    softwarePin: { type: String, trim: true, default: '' },
     /** Método de pago del DSNE (tabla 5.3.3.2). Default: 42 = consignación bancaria. */
     paymentMethod: { type: Number, default: 42 },
     /** Numeración correlativa anual del CEN por empleador. */
