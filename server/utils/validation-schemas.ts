@@ -94,6 +94,14 @@ export const companyUpdateSchema = z.object({
   nit: z.string().trim().min(5, 'NIT inválido').optional(),
   logo: z.string().max(600000, 'La imagen del logo es demasiado grande').optional(),
   address: z.string().trim().min(1, 'La dirección es requerida').optional(),
+  municipalityCode: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || /^\d{5}$/.test(value),
+      'El código de municipio debe tener 5 dígitos (DIVIPOLA)',
+    )
+    .optional(),
   taxRegime: z.enum(['simplified', 'common']).optional(),
   workSchedule: z
     .object({
@@ -181,8 +189,32 @@ export const employeeAccountSchema = z.object({
     .optional(),
 })
 
+/** Códigos DIAN de tipo de documento (tabla 5.2.1 del anexo técnico). */
+export const DIAN_DOCUMENT_TYPES = [
+  11, 12, 13, 21, 22, 31, 41, 42, 47, 50, 91,
+] as const
+
+/** Códigos DIAN de tipo de trabajador (tabla 5.5.3 del anexo técnico). */
+export const DIAN_EMPLOYEE_TYPES = [
+  '01', '02', '04', '12', '18', '19', '21', '22', '23', '30',
+  '31', '47', '51', '54', '56', '58',
+] as const
+
+/** Códigos DIAN de subtipo de trabajador (tabla 5.5.4 del anexo técnico). */
+export const DIAN_SUB_EMPLOYEE_TYPES = ['00', '01'] as const
+
+const dianDocumentTypeSchema = z
+  .number()
+  .int()
+  .refine(
+    (value) =>
+      DIAN_DOCUMENT_TYPES.includes(value as (typeof DIAN_DOCUMENT_TYPES)[number]),
+    'Tipo de documento DIAN inválido',
+  )
+
 export const employeeCreateSchema = employeeAccountSchema.extend({
   document: z.string().trim().min(4, 'Documento inválido'),
+  documentType: dianDocumentTypeSchema.default(13),
   firstName: z.string().trim().min(1, 'El nombre es requerido'),
   lastName: z.string().trim().min(1, 'El apellido es requerido'),
   email: emailSchema.optional(),
@@ -190,6 +222,12 @@ export const employeeCreateSchema = employeeAccountSchema.extend({
   contractType: z
     .enum(['indefinite', 'fixed', 'work_labor', 'intern'])
     .default('indefinite'),
+  employeeType: z.enum(DIAN_EMPLOYEE_TYPES).default('01'),
+  subEmployeeType: z.enum(DIAN_SUB_EMPLOYEE_TYPES).default('00'),
+  salarioIntegral: z.boolean().default(false),
+  bankName: z.string().trim().max(80).optional(),
+  accountType: z.enum(['ahorros', 'corriente']).optional(),
+  accountNumber: z.string().trim().max(30).optional(),
   baseSalary: z.number().positive('El salario base debe ser mayor a 0'),
   arlRiskClass: z.number().int().min(1).max(5).default(1),
   position: z.string().trim().min(1, 'El cargo es requerido'),
@@ -203,6 +241,7 @@ export const employeeUpdateSchema = z.object({
   userId: mongoIdSchema.optional(),
   unlinkUser: z.boolean().default(false),
   document: z.string().trim().min(4, 'Documento inválido').optional(),
+  documentType: dianDocumentTypeSchema.optional(),
   firstName: z.string().trim().min(1, 'El nombre es requerido').optional(),
   lastName: z.string().trim().min(1, 'El apellido es requerido').optional(),
   email: emailSchema.optional(),
@@ -210,6 +249,12 @@ export const employeeUpdateSchema = z.object({
   contractType: z
     .enum(['indefinite', 'fixed', 'work_labor', 'intern'])
     .optional(),
+  employeeType: z.enum(DIAN_EMPLOYEE_TYPES).optional(),
+  subEmployeeType: z.enum(DIAN_SUB_EMPLOYEE_TYPES).optional(),
+  salarioIntegral: z.boolean().optional(),
+  bankName: z.string().trim().max(80).optional(),
+  accountType: z.enum(['ahorros', 'corriente']).optional(),
+  accountNumber: z.string().trim().max(30).optional(),
   baseSalary: z.number().positive('El salario base debe ser mayor a 0').optional(),
   arlRiskClass: z.number().int().min(1).max(5).optional(),
   position: z.string().trim().min(1, 'El cargo es requerido').optional(),

@@ -37,6 +37,7 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
       nit: data.nit || '',
       logo: data.logo || '',
       address: data.address || '',
+      municipalityCode: data.municipalityCode || '',
       taxRegime: data.taxRegime || 'simplified',
       workSchedule: {
         maxWeeklyHours: 42,
@@ -66,6 +67,13 @@ export const updateCompanyConfig = async (data: CompanyUpdateInput) => {
   if (data.address !== undefined) {
     changes.address = { before: company.address, after: data.address }
     company.address = data.address
+  }
+  if (data.municipalityCode !== undefined) {
+    changes.municipalityCode = {
+      before: company.municipalityCode,
+      after: data.municipalityCode,
+    }
+    company.municipalityCode = data.municipalityCode
   }
   if (data.taxRegime !== undefined) {
     changes.taxRegime = { before: company.taxRegime, after: data.taxRegime }

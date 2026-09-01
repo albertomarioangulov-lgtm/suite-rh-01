@@ -49,6 +49,11 @@ const CompanySchema = new Schema(
      * sin módulo de nómina.
      */
     attendanceClosedThrough: { type: String, default: '', trim: true },
+    /** Código de municipio DIAN del domicilio principal (para el CEN). */
+    municipalityCode: { type: String, default: '', trim: true },
+    /** Numeración correlativa anual del CEN por empleador. */
+    cenSequence: { type: Number, default: 0 },
+    cenSequenceYear: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
   },
   { timestamps: true, versionKey: false },
