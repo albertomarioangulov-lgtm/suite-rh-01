@@ -16,6 +16,10 @@ import {
   PAYROLL_FREQUENCIES,
   type PayrollFrequency,
 } from '~~/shared/payroll-period'
+import {
+  computeCune,
+  computeSoftwareSC,
+} from '~~/server/utils/cune'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -110,6 +114,8 @@ export interface ICenPayload {
   softwareId?: string
   /** Código de seguridad del software ante la DIAN (obligatorio en producción; M3). */
   softwareSC?: string
+  /** PIN del software asignado al activarlo ante la DIAN (privado, para CUNE/SC). */
+  softwarePin?: string
   /** Ambiente de destino (tabla 5.1.1): 1 producción, 2 pruebas. Default: 2. */
   environment?: 1 | 2
   /** Código DIAN PeriodoNomina (tabla 5.5.1): 1 semanal … 5 mensual, 6 otro. */
@@ -192,6 +198,29 @@ export const buildCenXml = (data: ICenPayload): string => {
   const numero = data.prefix
     ? `${data.prefix}${data.sequence}`
     : String(data.sequence)
+  const cune = data.softwarePin
+    ? computeCune({
+        numero,
+        fechaGen: data.generationDate,
+        horaGen: data.generationTime,
+        totalDevengado: devengados.total,
+        totalDeducciones: deducciones.total,
+        totalPagado: data.totalToPay,
+        nit: company.nit,
+        documentoEmpleado: employee.document,
+        tipoXml: 102,
+        softwarePin: data.softwarePin,
+        ambiente: environment,
+      })
+    : ''
+  const softwareSC = computeSoftwareSC(
+    data.softwareId ?? '',
+    data.softwarePin ?? '',
+    numero,
+  )
+  const qrUrl = cune
+    ? `https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=${cune}`
+    : ''
   const pagoXml = [
     `<Pago ${attr('Forma', '1')} ${attr('Metodo', paymentMethod)}`,
     employee.bankName ? ` ${attr('Banco', employee.bankName)}` : '',
@@ -351,9 +380,9 @@ export const buildCenXml = (data: ICenPayload): string => {
   <Periodo ${attr('FechaIngreso', employee.hireDate ?? period.start)} ${attr('FechaLiquidacionInicio', period.start)} ${attr('FechaLiquidacionFin', period.end)} ${attr('TiempoLaborado', data.tiempoLaborado)} ${attr('FechaGen', data.generationDate)} />
   <NumeroSecuenciaXML ${attr('CodigoTrabajador', employee.document)}${data.prefix ? ` ${attr('Prefijo', data.prefix)}` : ''} ${attr('Consecutivo', data.sequence)} ${attr('Numero', numero)} />
   <LugarGeneracionXML ${attr('Pais', 'CO')} ${attr('DepartamentoEstado', department)} ${attr('MunicipioCiudad', municipality)} ${attr('Idioma', 'es')} />
-  <ProveedorXML ${attr('NIT', company.nit)} ${attr('DV', dv)} ${attr('SoftwareID', data.softwareId ?? '')} ${attr('SoftwareSC', data.softwareSC ?? '')} />
-  <CodigoQR></CodigoQR>
-  <InformacionGeneral ${attr('Version', 'V1.0: Documento Soporte de Pago de Nómina Electrónica')} ${attr('Ambiente', environment)} ${attr('TipoXML', '102')} ${attr('CUNE', '')} ${attr('EncripCUNE', 'CUNE-SHA384')} ${attr('FechaGen', data.generationDate)} ${attr('HoraGen', data.generationTime)} ${attr('PeriodoNomina', periodoNomina)} ${attr('TipoMoneda', 'COP')} ${attr('TRM', '0')} />
+  <ProveedorXML ${attr('NIT', company.nit)} ${attr('DV', dv)} ${attr('SoftwareID', data.softwareId ?? '')} ${attr('SoftwareSC', softwareSC)} />
+  <CodigoQR>${qrUrl}</CodigoQR>
+  <InformacionGeneral ${attr('Version', 'V1.0: Documento Soporte de Pago de Nómina Electrónica')} ${attr('Ambiente', environment)} ${attr('TipoXML', '102')} ${attr('CUNE', cune)} ${attr('EncripCUNE', 'CUNE-SHA384')} ${attr('FechaGen', data.generationDate)} ${attr('HoraGen', data.generationTime)} ${attr('PeriodoNomina', periodoNomina)} ${attr('TipoMoneda', 'COP')} ${attr('TRM', '0')} />
   <Empleador ${attr('RazonSocial', company.name)} ${attr('NIT', company.nit)} ${attr('DV', dv)} ${attr('Pais', 'CO')} ${attr('DepartamentoEstado', department)} ${attr('MunicipioCiudad', municipality)} ${attr('Direccion', company.address ?? '')} />
   <Trabajador ${attr('TipoTrabajador', employee.employeeType ?? '01')} ${attr('SubTipoTrabajador', employee.subEmployeeType ?? '00')} ${attr('AltoRiesgoPension', 'false')} ${attr('TipoDocumento', employee.documentType ?? 13)} ${attr('NumeroDocumento', employee.document)} ${attr('PrimerApellido', primerApellido)}${segundoApellido ? ` ${attr('SegundoApellido', segundoApellido)}` : ''} ${attr('PrimerNombre', primerNombre)}${otrosNombres ? ` ${attr('OtrosNombres', otrosNombres)}` : ''} ${attr('LugarTrabajoPais', 'CO')} ${attr('LugarTrabajoDepartamentoEstado', department)} ${attr('LugarTrabajoMunicipioCiudad', municipality)} ${attr('LugarTrabajoDireccion', company.address ?? '')} ${attr('SalarioIntegral', employee.salarioIntegral ?? false)} ${attr('TipoContrato', employee.contractTypeCode ?? 2)} ${attr('Sueldo', money(employee.baseSalary))} ${attr('CodigoTrabajador', employee.document)} />
   ${pagoXml}
@@ -387,6 +416,7 @@ export interface ICenEmployeeSource {
     cenEnvironment?: number
     softwareId?: string
     softwareSC?: string
+    softwarePin?: string
     payrollFrequency?: string
     paymentMethod?: number
   }
@@ -509,6 +539,7 @@ export const buildCenForEmployee = async (
     generationTime,
     softwareId: company.softwareId || undefined,
     softwareSC: company.softwareSC || undefined,
+    softwarePin: company.softwarePin || undefined,
     environment: (company.cenEnvironment ?? 2) as 1 | 2,
     payrollFrequencyCode:
       payroll.periodoNomina ||

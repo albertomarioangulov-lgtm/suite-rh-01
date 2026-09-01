@@ -4,6 +4,10 @@ import {
   computeNitDv,
   escapeXml,
 } from '~~/server/services/cen.service'
+import {
+  computeCune,
+  computeSoftwareSC,
+} from '~~/server/utils/cune'
 
 const payload = {
   sequence: 3,
@@ -101,14 +105,32 @@ describe('buildCenXml', () => {
       ...payload,
       environment: 1,
       softwareId: 'SW-001',
-      softwareSC: 'SC-ABC123',
+      softwarePin: '693',
       payrollFrequencyCode: 4,
       paymentMethod: 45,
     })
+    const cune = computeCune({
+      numero: '3',
+      fechaGen: '2026-08-09',
+      horaGen: '18:15:00-05:00',
+      totalDevengado: 4374095,
+      totalDeducciones: 450000,
+      totalPagado: 3924095,
+      nit: '900123456',
+      documentoEmpleado: '1000000001',
+      tipoXml: 102,
+      softwarePin: '693',
+      ambiente: 1,
+    })
+    const softwareSC = computeSoftwareSC('SW-001', '693', '3')
     expect(xml).toContain('PeriodoNomina="4"')
     expect(xml).toContain('Ambiente="1"')
     expect(xml).toContain('SoftwareID="SW-001"')
-    expect(xml).toContain('SoftwareSC="SC-ABC123"')
+    expect(xml).toContain(`CUNE="${cune}"`)
+    expect(xml).toContain(`SoftwareSC="${softwareSC}"`)
+    expect(xml).toContain(
+      `<CodigoQR>https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=${cune}</CodigoQR>`,
+    )
     expect(xml).toContain('Metodo="45"')
   })
 
