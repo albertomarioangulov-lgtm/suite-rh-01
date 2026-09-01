@@ -116,6 +116,8 @@ export const usePayrollReceiptPdf = () => {
   const downloadReceipt = async (
     receipt: IReceiptEntry & {
       periodLabel: string
+      periodStart?: string
+      periodEnd?: string
       days: number
       status: string
     },
@@ -127,6 +129,9 @@ export const usePayrollReceiptPdf = () => {
     },
   ) => {
     generating.value = true
+    // Se abre la pestaña de inmediato (dentro del gesto del usuario) para
+    // evitar que el navegador bloquee el popup tras cargar pdfmake.
+    const win = typeof window !== 'undefined' ? window.open('', '_blank') : null
     try {
       // @ts-expect-error pdfmake sin tipos
       const pdfModule = await import('pdfmake/build/pdfmake')
@@ -306,7 +311,33 @@ export const usePayrollReceiptPdf = () => {
         }),
       }
 
-      pdfMake.createPdf(docDefinition).download(`recibo-nomina-${receipt.periodLabel.replace(/\//g, '-')}.pdf`)
+      const safeName = (value: string) =>
+        value
+          .replace(/[\\/:*?"<>|]/g, '-')
+          .replace(/\s+/g, ' ')
+          .trim()
+      const start = receipt.periodStart
+        ? String(receipt.periodStart).slice(0, 10)
+        : ''
+      const end = receipt.periodEnd ? String(receipt.periodEnd).slice(0, 10) : ''
+      const range =
+        start && end ? `${start}-${end}` : safeName(receipt.periodLabel)
+      const fileName = `Recibo de nómina - ${profile.firstName} ${profile.lastName} - ${range}.pdf`
+      const pdf = pdfMake.createPdf(docDefinition)
+      if (win) {
+        // open() genera el blob y navega la pestaña (gestión interna de pdfmake).
+        await pdf.open(win)
+        // El visor muestra el id del blob como nombre: se ajusta el título de
+        // la pestaña para que el nombre del recibo sea legible.
+        try {
+          win.document.title = fileName.replace(/\.pdf$/i, '')
+        } catch {
+          // Sin acceso al documento (visor): se ignora.
+        }
+      } else {
+        // Popup bloqueado: se descarga como respaldo.
+        pdf.download(fileName)
+      }
     } finally {
       generating.value = false
     }

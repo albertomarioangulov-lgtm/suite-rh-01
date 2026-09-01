@@ -186,6 +186,8 @@ const downloadRecibo = async () => {
       },
       totalToPay: payroll.totalToPay,
       periodLabel: `${formatDate(payroll.periodStart, 'DD/MM/YYYY')} – ${formatDate(payroll.periodEnd, 'DD/MM/YYYY')}`,
+      periodStart: payroll.periodStart,
+      periodEnd: payroll.periodEnd,
       days: payroll.days,
       status: payroll.status,
     },
@@ -506,11 +508,11 @@ const cancelAbsence = async (item: ISelfAbsence) => {
           <v-btn
             color="primary"
             variant="tonal"
-            prepend-icon="mdi-download"
+            prepend-icon="mdi-file-pdf-box"
             :loading="pdfGenerating"
             @click="downloadRecibo"
           >
-            Descargar PDF
+            Ver recibo
           </v-btn>
         </v-card-actions>
       </v-card>

@@ -4,10 +4,27 @@ import { requireAuth } from '~~/server/utils/authorize'
 import { Employee } from '~~/server/models/Employee'
 import { createAbsence } from '~~/server/services/absence.service'
 import {
-  absenceCreateSchema,
+  absenceTypeSchema,
+  dateOnlySchema,
   validateWithSchema,
 } from '~~/server/utils/validation-schemas'
 import { FEATURE_FLAGS } from '~~/shared/feature-flags'
+import { z } from 'zod'
+
+// Esquema propio del portal: absenceCreateSchema es un ZodEffects (refine)
+// y no expone .pick(); aquí se validan solo los campos del empleado.
+const selfAbsenceSchema = z
+  .object({
+    type: absenceTypeSchema,
+    startDate: dateOnlySchema,
+    endDate: dateOnlySchema,
+    supportDocument: z.string().trim().optional(),
+    observations: z.string().trim().optional(),
+  })
+  .refine((data) => data.endDate >= data.startDate, {
+    message: 'La fecha final debe ser posterior o igual a la inicial',
+    path: ['endDate'],
+  })
 
 /**
  * Solicitud de permiso/ausencia del empleado (autoservicio).
@@ -31,13 +48,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const data = validateWithSchema(
-    absenceCreateSchema.pick({
-      type: true,
-      startDate: true,
-      endDate: true,
-      supportDocument: true,
-      observations: true,
-    }),
+    selfAbsenceSchema,
     body,
   )
 
