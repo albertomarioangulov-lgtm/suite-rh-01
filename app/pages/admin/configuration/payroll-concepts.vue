@@ -189,21 +189,32 @@ const save = async () => {
   }
 }
 
-const remove = async (item: IConceptRow) => {
-  if (!confirm(`¿Eliminar el concepto "${item.name}"? Las nóminas ya liquidadas no se modifican.`)) {
-    return
-  }
+const deleteDialogOpen = ref(false)
+const deleteTarget = ref<IConceptRow | null>(null)
+const deleting = ref(false)
+
+const openDelete = (item: IConceptRow) => {
+  deleteTarget.value = item
+  deleteDialogOpen.value = true
+}
+
+const confirmDelete = async () => {
+  if (!deleteTarget.value) return
+  deleting.value = true
   try {
-    await authFetch(API_PATHS.payrollConcepts.detail(item._id), {
+    await authFetch(API_PATHS.payrollConcepts.detail(deleteTarget.value._id), {
       method: 'DELETE',
     })
     snackbar.success('Concepto eliminado')
+    deleteDialogOpen.value = false
     await load()
   } catch (err) {
     snackbar.error(
       (err as { data?: { message?: string } }).data?.message ||
         'No se pudo eliminar el concepto.',
     )
+  } finally {
+    deleting.value = false
   }
 }
 </script>
@@ -320,7 +331,7 @@ const remove = async (item: IConceptRow) => {
             variant="text"
             color="error"
             title="Eliminar concepto"
-            @click="remove(item)"
+            @click="openDelete(item)"
           />
         </template>
         <template #no-data>
@@ -451,6 +462,43 @@ const remove = async (item: IConceptRow) => {
             @click="save"
           >
             {{ editingId ? 'Guardar cambios' : 'Crear concepto' }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="deleteDialogOpen" max-width="440">
+      <v-card>
+        <v-card-item>
+          <template #prepend>
+            <v-avatar color="error" variant="tonal" size="44">
+              <v-icon color="error">mdi-alert-outline</v-icon>
+            </v-avatar>
+          </template>
+          <v-card-title class="text-subtitle-1 font-weight-bold">
+            ¿Eliminar el concepto?
+          </v-card-title>
+          <v-card-subtitle v-if="deleteTarget">
+            {{ deleteTarget.name }}
+          </v-card-subtitle>
+        </v-card-item>
+        <v-divider />
+        <v-card-text>
+          Esta acción no se puede deshacer. Las nóminas ya liquidadas no se
+          modifican.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="deleteDialogOpen = false">
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="tonal"
+            :loading="deleting"
+            @click="confirmDelete"
+          >
+            Eliminar
           </v-btn>
         </v-card-actions>
       </v-card>
