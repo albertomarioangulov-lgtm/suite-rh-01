@@ -83,6 +83,9 @@ export const calculateDevengados = async (
   let absenceCompanyPaidValue = 0
   let absenceEpsValue = 0
   let absenceArlValue = 0
+  let absenceCompanyPaidDays = 0
+  let absenceEpsDays = 0
+  let absenceArlDays = 0
 
   for (const absence of absences) {
     const type = absence.type as AbsenceType
@@ -91,8 +94,16 @@ export const calculateDevengados = async (
     } else if (type === ABSENCE_TYPES.INCAPACIDAD_COMUN) {
       absenceCompanyPaidValue += absence.companyPaidValue ?? 0
       absenceEpsValue += absence.epsValue ?? 0
+      // Días que paga la empresa y días que asume la EPS en incapacidad común.
+      const employerPaidDays = Math.min(
+        absence.days ?? 0,
+        params.employerPaidIncapacidadDays ?? 2,
+      )
+      absenceCompanyPaidDays += employerPaidDays
+      absenceEpsDays += Math.max(0, (absence.days ?? 0) - employerPaidDays)
     } else if (type === ABSENCE_TYPES.INCAPACIDAD_LABORAL) {
       absenceArlValue += absence.arlValue ?? 0
+      absenceArlDays += absence.days ?? 0
     }
   }
 
@@ -124,10 +135,16 @@ export const calculateDevengados = async (
     absenceCompanyPaidValue: round2(absenceCompanyPaidValue),
     absenceEpsValue: round2(absenceEpsValue),
     absenceArlValue: round2(absenceArlValue),
+    absenceCompanyPaidDays,
+    absenceEpsDays,
+    absenceArlDays,
     transportAllowance,
     overtimeDay,
     overtimeNight,
     nightSurcharge,
+    overtimeDayHours: summary.overtimeDayHours ?? 0,
+    overtimeNightHours: summary.overtimeNightHours ?? 0,
+    nightSurchargeHours: summary.nightSurcharge ?? 0,
     bonuses,
     commissions,
     total: round2(

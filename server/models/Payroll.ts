@@ -17,10 +17,22 @@ const PayrollEmployeeSchema = new Schema(
       absenceEpsValue: { type: Number, default: 0 },
       /** Valor cubierto por ARL (incapacidad laboral). */
       absenceArlValue: { type: Number, default: 0 },
+      /** Días de incapacidad común asumidos por la empresa. */
+      absenceCompanyPaidDays: { type: Number, default: 0 },
+      /** Días de incapacidad común asumidos por la EPS. */
+      absenceEpsDays: { type: Number, default: 0 },
+      /** Días de incapacidad laboral asumidos por la ARL. */
+      absenceArlDays: { type: Number, default: 0 },
       transportAllowance: { type: Number, default: 0 },
       overtimeDay: { type: Number, default: 0 },
       overtimeNight: { type: Number, default: 0 },
       nightSurcharge: { type: Number, default: 0 },
+      /** Horas de extra diurna (para el DSNE ante la DIAN). */
+      overtimeDayHours: { type: Number, default: 0 },
+      /** Horas de extra nocturna (para el DSNE ante la DIAN). */
+      overtimeNightHours: { type: Number, default: 0 },
+      /** Horas con recargo nocturno (para el DSNE ante la DIAN). */
+      nightSurchargeHours: { type: Number, default: 0 },
       bonuses: { type: Number, default: 0 },
       commissions: { type: Number, default: 0 },
       total: { type: Number, default: 0 },
