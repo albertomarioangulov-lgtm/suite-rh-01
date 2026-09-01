@@ -7,6 +7,7 @@ import {
   type PayrollFrequency,
 } from '~~/shared/payroll-period'
 import { API_PATHS } from '~/utils/api-paths'
+import dayjs from 'dayjs'
 import type { VForm } from 'vuetify/components'
 
 const emit = defineEmits<{
@@ -32,6 +33,7 @@ const cycles = ref<
 >([])
 const cycleId = ref('')
 const cyclesLoading = ref(false)
+const loading = computed(() => cyclesLoading.value || frequencyLoading.value)
 const { authFetch } = useAuthState()
 
 const rules = {
@@ -61,12 +63,28 @@ const periodMismatch = computed(() => {
   })
 })
 
+const emptyCycleWarning = computed(
+  () => selectedCycle.value?.employeeCount === 0,
+)
+
 const applySuggestion = (anchor: string) => {
   if (!frequency.value) return
   const period = getPayrollPeriodForDate(frequency.value, anchor)
   if (!period) return
   periodStart.value = period.start
   periodEnd.value = period.end
+}
+
+const onStartChange = (value: unknown) => {
+  periodStart.value = value
+    ? dayjs(value as Date | string).format('YYYY-MM-DD')
+    : ''
+}
+
+const onEndChange = (value: unknown) => {
+  periodEnd.value = value
+    ? dayjs(value as Date | string).format('YYYY-MM-DD')
+    : ''
 }
 
 watch(cycleId, () => {
@@ -138,6 +156,7 @@ const submit = async () => {
   >
     <v-card class="position-relative">
       <v-progress-linear
+        v-if="loading"
         indeterminate
         color="primary"
         height="4"
@@ -170,19 +189,23 @@ const submit = async () => {
             hint="Se liquidan los empleados asignados al ciclo"
             persistent-hint
           />
-          <v-text-field
-            v-model="periodStart"
+          <v-date-input
+            :model-value="periodStart ? dayjs(periodStart).toDate() : null"
             label="Inicio del período"
-            type="date"
+            input-format="YYYY-MM-DD"
+            clearable
             :rules="rules.periodStart"
             class="mb-3"
+            @update:model-value="onStartChange"
           />
-          <v-text-field
-            v-model="periodEnd"
+          <v-date-input
+            :model-value="periodEnd ? dayjs(periodEnd).toDate() : null"
             label="Fin del período"
-            type="date"
+            input-format="YYYY-MM-DD"
+            clearable
             :rules="rules.periodEnd"
             class="mb-3"
+            @update:model-value="onEndChange"
           />
           <div class="d-flex align-center ga-2 mb-3">
             <v-chip
@@ -229,6 +252,14 @@ const submit = async () => {
             density="compact"
             class="mb-3"
             text="El período no coincide con la frecuencia del ciclo. Solo continúa si es intencional (primer ciclo, período parcial o ajuste)."
+          />
+          <v-alert
+            v-if="emptyCycleWarning"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mb-3"
+            text="El ciclo no tiene empleados activos. La nómina se creará vacía y bloqueará este período para el ciclo hasta que la anules."
           />
           <div class="d-flex justify-end ga-2">
             <v-btn
