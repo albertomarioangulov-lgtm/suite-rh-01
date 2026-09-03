@@ -1,5 +1,5 @@
 import { Employee } from '~~/server/models/Employee'
-import { ROLES, type UserRole } from '~~/shared/auth'
+import { ROLES, roleIsAllowed, type UserRole } from '~~/shared/auth'
 import { requireAuth } from '~~/server/utils/authorize'
 import {
   mongoIdSchema,
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
   const role = (session.user as { role?: UserRole } | undefined)?.role
   const canView =
-    !!role && ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(role)
+    !!role && roleIsAllowed(role, [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR])
   const isSelf = String(employee.user) === userId
   if (!canView && !isSelf) {
     throw createError({

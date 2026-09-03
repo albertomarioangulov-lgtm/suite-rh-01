@@ -1,5 +1,5 @@
 import { Attendance } from '~~/server/models/Attendance'
-import { ROLES, type UserRole } from '~~/shared/auth'
+import { ROLES, roleIsAllowed, type UserRole } from '~~/shared/auth'
 import { requireAuth } from '~~/server/utils/authorize'
 import {
   mongoIdSchema,
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const role = (session.user as { role?: UserRole } | undefined)?.role
   const canView =
     !!role &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(role)
+    roleIsAllowed(role, [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR])
   const employee = (record.employee as { user?: { toString?: () => string } } | null)
   const employeeUser = employee?.user?.toString?.()
   const isSelf = employeeUser === userId
