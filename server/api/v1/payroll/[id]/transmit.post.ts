@@ -178,7 +178,7 @@ export default defineEventHandler(async (event) => {
         statusCode: parsed.statusCode,
         statusDescription: parsed.statusDescription,
         statusMessage: parsed.statusMessage,
-        errors: parsed.errors,
+        errorMessages: parsed.errors,
         xmlDocumentKey: parsed.xmlDocumentKey,
         transmittedBy: userId,
       })

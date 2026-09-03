@@ -93,7 +93,7 @@ const DianTransmissionSchema = new Schema(
     statusCode: { type: String, default: '' },
     statusDescription: { type: String, default: '' },
     statusMessage: { type: String, default: '' },
-    errors: { type: [String], default: [] },
+    errorMessages: { type: [String], default: [] },
     /** CUNE/trackId devuelto por la DIAN (XmlDocumentKey). */
     xmlDocumentKey: { type: String, default: '' },
     transmittedBy: { ref: 'User', type: Schema.Types.ObjectId },
