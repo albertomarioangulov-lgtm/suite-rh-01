@@ -49,7 +49,7 @@ const myCustomDarkTheme: ThemeDefinition = {
     background: '#09090B',
     surface: '#0F172A',
     'surface-bright': '#1E293B',
-    'surface-light': '#111827',
+    'surface-light': '#1E293B',
     'surface-variant': '#94A3B8',
     primary: '#3B82F6',
     'primary-darken-1': '#2563EB',
