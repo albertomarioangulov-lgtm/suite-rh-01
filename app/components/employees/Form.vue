@@ -2,6 +2,8 @@
 import { betweenRule, requiredRule } from '~/utils/validation-rules'
 import { CONTRACT_TYPE_LABELS } from '~/utils/contract-types'
 import { API_PATHS } from '~/utils/api-paths'
+import { FEATURE_FLAGS } from '~~/shared/feature-flags'
+import { useFeatureFlagsState } from '~/composables/states/useFeatureFlagsState'
 import type { IEmployeeView } from '~/composables/states/useEmployeeState'
 import type { VForm } from 'vuetify/components'
 
@@ -17,6 +19,19 @@ const emit = defineEmits<{
 
 const isNew = computed(() => !props.employee)
 const { authFetch } = useAuthState()
+const { enabledFlags, fetchFlags } = useFeatureFlagsState()
+
+onMounted(async () => {
+  if (enabledFlags.value.length === 0) await fetchFlags()
+})
+const needsPayroll = computed(() =>
+  enabledFlags.value.includes(FEATURE_FLAGS.PAYROLL),
+)
+const baseSalaryRules = computed(() =>
+  needsPayroll.value
+    ? [requiredRule('Ingresa el salario base'), betweenRule(0, 100000000000)]
+    : [betweenRule(0, 100000000000)],
+)
 
 const linkedUserId = computed(() => {
   const user = props.employee?.user
@@ -220,10 +235,6 @@ const rules = {
   document: [requiredRule('Ingresa el documento')],
   firstName: [requiredRule('Ingresa el nombre')],
   lastName: [requiredRule('Ingresa el apellido')],
-  baseSalary: [
-    requiredRule('Ingresa el salario base'),
-    betweenRule(0, 100000000000),
-  ],
   position: [requiredRule('Ingresa el cargo')],
 }
 
@@ -449,7 +460,8 @@ const save = async () => {
           v-model="formState.baseSalary"
           label="Salario base ($)"
           type="number"
-          :rules="rules.baseSalary"
+          :rules="baseSalaryRules"
+          :hint="needsPayroll ? undefined : 'Opcional: solo lo necesita el módulo de Nómina'"
           class="mb-3"
         />
       </v-col>

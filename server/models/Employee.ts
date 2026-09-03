@@ -72,7 +72,11 @@ const EmployeeSchema = new Schema(
     tipoContrato: { type: String, trim: true },
     /** Día de descanso semanal (0=domingo … 6=sábado). Default: domingo. */
     diaDescanso: { type: Number, default: 0, min: 0, max: 6 },
-    baseSalary: { type: Number, required: true, min: 0 },
+    /**
+     * Salario base. Opcional mientras el módulo de Nómina no esté activo;
+     * la creación de nómina valida que los empleados lo tengan configurado.
+     */
+    baseSalary: { type: Number, default: 0, min: 0 },
     /** Clase de riesgo ARL (1-5) usada en el cálculo de seguridad social. */
     arlRiskClass: { type: Number, default: 1, min: 1, max: 5 },
     position: { type: String, required: true, trim: true },

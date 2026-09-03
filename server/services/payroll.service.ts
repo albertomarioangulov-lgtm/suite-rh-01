@@ -525,6 +525,25 @@ export const createPayroll = async (
 
   const params = await getCurrentLegalParams()
   const concepts = await getActiveConcepts(String(company._id))
+
+  const withoutSalary = employees.filter(
+    (employee) => !((employee.baseSalary ?? 0) > 0),
+  )
+  if (withoutSalary.length > 0) {
+    const names = withoutSalary
+      .slice(0, 3)
+      .map(
+        (employee) =>
+          `${employee.firstName ?? ''} ${employee.lastName ?? ''}`.trim(),
+      )
+      .filter(Boolean)
+      .join(', ')
+    throw createError({
+      statusCode: 400,
+      message: `${withoutSalary.length} empleado(s) sin salario base configurado${names ? ` (${names}${withoutSalary.length > 3 ? '…' : ''})` : ''}. Configura el salario antes de crear la nómina.`,
+    })
+  }
+
   const entries = []
 
   for (const employee of employees) {

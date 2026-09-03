@@ -61,7 +61,10 @@ export const userCreateSchema = registerSchema.extend({
       lastName: z.string().trim().min(1, 'El apellido es requerido'),
       document: z.string().trim().min(4, 'Documento inválido'),
       position: z.string().trim().min(1, 'El cargo es requerido'),
-      baseSalary: z.number().positive('El salario base debe ser mayor a 0'),
+      baseSalary: z
+        .number()
+        .min(0, 'El salario base no puede ser negativo')
+        .optional(),
       contractType: z
         .enum(['indefinite', 'fixed', 'work_labor', 'intern'])
         .default('indefinite'),
@@ -268,7 +271,10 @@ export const employeeCreateSchema = employeeAccountSchema.extend({
   accountType: z.enum(['ahorros', 'corriente']).optional(),
   accountNumber: z.string().trim().max(30).optional(),
   payrollCycle: mongoIdSchema.nullable().optional(),
-  baseSalary: z.number().positive('El salario base debe ser mayor a 0'),
+  baseSalary: z
+    .number()
+    .min(0, 'El salario base no puede ser negativo')
+    .optional(),
   arlRiskClass: z.number().int().min(1).max(5).default(1),
   position: z.string().trim().min(1, 'El cargo es requerido'),
   department: mongoIdSchema.nullable().optional(),
@@ -296,7 +302,10 @@ export const employeeUpdateSchema = z.object({
   accountType: z.enum(['ahorros', 'corriente']).optional(),
   accountNumber: z.string().trim().max(30).optional(),
   payrollCycle: mongoIdSchema.nullable().optional(),
-  baseSalary: z.number().positive('El salario base debe ser mayor a 0').optional(),
+  baseSalary: z
+    .number()
+    .min(0, 'El salario base no puede ser negativo')
+    .optional(),
   arlRiskClass: z.number().int().min(1).max(5).optional(),
   position: z.string().trim().min(1, 'El cargo es requerido').optional(),
   department: mongoIdSchema.nullable().optional(),
