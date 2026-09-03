@@ -781,7 +781,10 @@ const orgSunburstOptions = computed(() => {
           density="compact"
         >
           <template #[`item.name`]="{ item }">
-            <div class="d-flex align-center ga-2">
+            <div
+              class="d-flex align-center ga-2 cursor-pointer"
+              @click="navigateTo(`/admin/organization/sedes/${item.id}`)"
+            >
               <span>{{ item.name }}</span>
               <v-chip
                 v-if="item.isMain"
@@ -803,6 +806,13 @@ const orgSunburstOptions = computed(() => {
             </div>
           </template>
           <template #[`item.actions`]="{ item }">
+            <v-btn
+              icon="mdi-eye-outline"
+              size="small"
+              variant="text"
+              title="Ver sede"
+              @click="navigateTo(`/admin/organization/sedes/${item.id}`)"
+            />
             <v-btn icon="mdi-pencil" size="small" variant="text" @click="openSite(item)" />
             <v-btn
               icon="mdi-delete"
