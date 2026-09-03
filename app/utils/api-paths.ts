@@ -107,6 +107,8 @@ export const API_PATHS = {
     list: `${API_BASE}/contracts`,
   },
   organization: {
+    sites: `${API_BASE}/sites`,
+    site: (id: string) => `${API_BASE}/sites/${id}`,
     departments: `${API_BASE}/departments`,
     department: (id: string) => `${API_BASE}/departments/${id}`,
     positions: `${API_BASE}/positions`,

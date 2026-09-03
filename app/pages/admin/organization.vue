@@ -22,6 +22,19 @@ interface IDepartmentView {
   active: boolean
 }
 
+interface ISiteView {
+  id: string
+  name: string
+  code: string
+  city: string
+  municipalityCode: string
+  address: string
+  phone: string
+  isMain: boolean
+  active: boolean
+  sortOrder: number
+}
+
 interface IPositionView {
   id: string
   title: string
@@ -36,6 +49,7 @@ interface IPositionView {
 
 const departments = ref<IDepartmentView[]>([])
 const positions = ref<IPositionView[]>([])
+const sites = ref<ISiteView[]>([])
 const employeeOptions = ref<Array<{ title: string; value: string }>>([])
 const employeesForChart = ref<Array<Record<string, any>>>([])
 
@@ -67,7 +81,22 @@ const loadPositions = async () => {
   }
 }
 
+const loadSites = async () => {
+  loading.value = true
+  try {
+    const data = await authFetch<{ items: ISiteView[] }>(
+      API_PATHS.organization.sites,
+    )
+    sites.value = data.items
+  } catch {
+    error.value = 'No se pudieron cargar las sedes.'
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
+  loadSites()
   loadDepartments()
   loadPositions()
   loadEmployees()
@@ -230,6 +259,114 @@ const deleteDepartment = async (department: IDepartmentView) => {
     error.value =
       (err as { data?: { message?: string } })?.data?.message ??
       'No se pudo eliminar el área.'
+  }
+}
+
+// ---- Sedes ----
+const siteDialog = ref(false)
+const siteDeleteDialog = ref(false)
+const siteToDelete = ref<ISiteView | null>(null)
+const savingSite = ref(false)
+const siteForm = ref({
+  id: '',
+  name: '',
+  code: '',
+  city: '',
+  municipalityCode: '',
+  address: '',
+  phone: '',
+  isMain: false,
+  active: true,
+  sortOrder: 0,
+})
+
+const openSite = (site?: ISiteView) => {
+  siteForm.value = site
+    ? {
+        id: site.id,
+        name: site.name,
+        code: site.code,
+        city: site.city,
+        municipalityCode: site.municipalityCode,
+        address: site.address,
+        phone: site.phone,
+        isMain: site.isMain,
+        active: site.active,
+        sortOrder: site.sortOrder,
+      }
+    : {
+        id: '',
+        name: '',
+        code: '',
+        city: '',
+        municipalityCode: '',
+        address: '',
+        phone: '',
+        isMain: sites.value.length === 0,
+        active: true,
+        sortOrder: sites.value.length,
+      }
+  siteDialog.value = true
+}
+
+const saveSite = async () => {
+  if (!siteForm.value.name.trim()) return
+  savingSite.value = true
+  error.value = ''
+  try {
+    const body = {
+      name: siteForm.value.name.trim(),
+      code: siteForm.value.code.trim(),
+      city: siteForm.value.city.trim(),
+      municipalityCode: siteForm.value.municipalityCode.trim(),
+      address: siteForm.value.address.trim(),
+      phone: siteForm.value.phone.trim(),
+      isMain: siteForm.value.isMain,
+      active: siteForm.value.active,
+      sortOrder: Number(siteForm.value.sortOrder),
+    }
+    const url = siteForm.value.id
+      ? API_PATHS.organization.site(siteForm.value.id)
+      : API_PATHS.organization.sites
+    await authFetch(url, {
+      method: siteForm.value.id ? 'PUT' : 'POST',
+      body,
+    })
+    snackbar.success(siteForm.value.id ? 'Sede actualizada' : 'Sede creada')
+    siteDialog.value = false
+    await loadSites()
+  } catch (err) {
+    error.value =
+      (err as { data?: { message?: string } })?.data?.message ??
+      'No se pudo guardar la sede.'
+  } finally {
+    savingSite.value = false
+  }
+}
+
+const askDeleteSite = (site: ISiteView) => {
+  siteToDelete.value = site
+  siteDeleteDialog.value = true
+}
+
+const confirmDeleteSite = async () => {
+  if (!siteToDelete.value) return
+  savingSite.value = true
+  try {
+    await authFetch(API_PATHS.organization.site(siteToDelete.value.id), {
+      method: 'DELETE',
+    })
+    snackbar.success('Sede eliminada')
+    siteDeleteDialog.value = false
+    siteToDelete.value = null
+    await loadSites()
+  } catch (err) {
+    error.value =
+      (err as { data?: { message?: string } })?.data?.message ??
+      'No se pudo eliminar la sede.'
+    siteDeleteDialog.value = false
+  } finally {
+    savingSite.value = false
   }
 }
 
@@ -600,6 +737,9 @@ const orgSunburstOptions = computed(() => {
     />
 
     <v-tabs v-model="tab" density="comfortable" class="mb-4">
+      <v-tab value="sites" prepend-icon="mdi-map-marker-multiple-outline">
+        Sedes
+      </v-tab>
       <v-tab value="departments" prepend-icon="mdi-office-building-outline">
         Áreas
       </v-tab>
@@ -612,6 +752,68 @@ const orgSunburstOptions = computed(() => {
     </v-tabs>
 
     <v-window v-model="tab">
+      <!-- Sedes -->
+      <v-window-item value="sites">
+        <CommonListToolbar hide-search :loading="loading">
+          <template #actions>
+            <v-btn
+              color="primary"
+              variant="tonal"
+              prepend-icon="mdi-plus"
+              @click="openSite()"
+            >
+              Nueva sede
+            </v-btn>
+          </template>
+        </CommonListToolbar>
+        <v-data-table
+          :headers="[
+            { title: 'Nombre', key: 'name' },
+            { title: 'Ciudad', key: 'city' },
+            { title: 'Municipio', key: 'municipalityCode' },
+            { title: 'Dirección', key: 'address' },
+            { title: '', key: 'actions', sortable: false },
+          ]"
+          :items="sites"
+          :loading="loading"
+          density="compact"
+        >
+          <template #[`item.name`]="{ item }">
+            <div class="d-flex align-center ga-2">
+              <span>{{ item.name }}</span>
+              <v-chip
+                v-if="item.isMain"
+                size="x-small"
+                color="primary"
+                variant="tonal"
+                prepend-icon="mdi-star"
+              >
+                Principal
+              </v-chip>
+              <v-chip
+                v-if="!item.active"
+                size="x-small"
+                color="warning"
+                variant="tonal"
+              >
+                Inactiva
+              </v-chip>
+            </div>
+          </template>
+          <template #[`item.actions`]="{ item }">
+            <v-btn icon="mdi-pencil" size="small" variant="text" @click="openSite(item)" />
+            <v-btn
+              icon="mdi-delete"
+              size="small"
+              variant="text"
+              color="error"
+              @click="askDeleteSite(item)"
+            />
+          </template>
+          <template #no-data>No hay sedes creadas.</template>
+        </v-data-table>
+      </v-window-item>
+
       <!-- Áreas -->
       <v-window-item value="departments">
         <CommonListToolbar hide-search :loading="loading">
@@ -813,6 +1015,99 @@ const orgSunburstOptions = computed(() => {
             @click="saveDepartment"
           >
             Guardar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Diálogo sede -->
+    <v-dialog v-model="siteDialog" max-width="560" persistent>
+      <v-card>
+        <v-card-title class="text-subtitle-1 font-weight-bold">
+          {{ siteForm.id ? 'Editar sede' : 'Nueva sede' }}
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pt-4">
+          <v-row density="compact">
+            <v-col cols="12" sm="8">
+              <v-text-field
+                v-model="siteForm.name"
+                label="Nombre de la sede *"
+                class="mb-3"
+              />
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field v-model="siteForm.code" label="Código" class="mb-3" />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="siteForm.city" label="Ciudad" class="mb-3" />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="siteForm.municipalityCode"
+                label="Código municipio (DIVIPOLA)"
+                hint="5 dígitos, ej. 11001 (Bogotá)"
+                persistent-hint
+                class="mb-3"
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-text-field
+                v-model="siteForm.address"
+                label="Dirección"
+                class="mb-3"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="siteForm.phone" label="Teléfono" class="mb-3" />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-switch
+                v-model="siteForm.isMain"
+                label="Sede principal"
+                color="primary"
+                density="compact"
+                class="mb-3"
+                :disabled="sites.length === 1 && sites[0]?.id === siteForm.id"
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="siteDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            :loading="savingSite"
+            @click="saveSite"
+          >
+            Guardar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Confirmación eliminar sede -->
+    <v-dialog v-model="siteDeleteDialog" max-width="420">
+      <v-card>
+        <v-card-title class="text-subtitle-1 font-weight-bold">
+          Eliminar sede
+        </v-card-title>
+        <v-card-text>
+          ¿Eliminar la sede “{{ siteToDelete?.name }}”? Esta acción no se puede
+          deshacer.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="siteDeleteDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="error"
+            variant="tonal"
+            :loading="savingSite"
+            @click="confirmDeleteSite"
+          >
+            Eliminar
           </v-btn>
         </v-card-actions>
       </v-card>
