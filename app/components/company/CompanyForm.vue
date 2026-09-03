@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ICompanyView } from '~/composables/states/useCompanyState'
+import { FEATURE_FLAGS } from '~~/shared/feature-flags'
+import { useFeatureFlagsState } from '~/composables/states/useFeatureFlagsState'
 import {
   betweenRule,
   requiredRule,
@@ -137,7 +139,6 @@ const paymentMethodOptions = [
 
 const rules = {
   name: [requiredRule('Ingresa el nombre de la empresa')],
-  nit: [requiredRule('Ingresa el NIT'), validNIT()],
   address: [requiredRule('Ingresa la dirección')],
   municipalityCode: [validMunicipalityCode()],
   maxWeeklyHours: [requiredRule('Ingresa las horas semanales'), betweenRule(1, 168)],
@@ -146,6 +147,22 @@ const rules = {
   nightShiftStart: [requiredRule('Ingresa la hora de inicio'), validTime()],
   nightShiftEnd: [requiredRule('Ingresa la hora de fin'), validTime()],
 }
+
+// El NIT (y los datos DIAN) solo se exigen cuando el cliente usa módulos que
+// generan el DSNE (nómina electrónica). Para empleados/evaluaciones es
+// opcional: no se debe bloquear la configuración de la empresa.
+const { enabledFlags, fetchFlags } = useFeatureFlagsState()
+onMounted(async () => {
+  if (enabledFlags.value.length === 0) await fetchFlags()
+})
+const needsDianData = computed(() =>
+  enabledFlags.value.includes(FEATURE_FLAGS.PAYROLL),
+)
+const nitRules = computed(() =>
+  needsDianData.value
+    ? [requiredRule('Ingresa el NIT'), validNIT()]
+    : [validNIT()],
+)
 
 const save = async () => {
   const { valid } = (await formRef.value?.validate()) ?? { valid: true }
@@ -221,13 +238,29 @@ const save = async () => {
       @click:close="error = ''"
     />
 
+    <v-alert
+      v-if="!needsDianData"
+      type="info"
+      density="compact"
+      variant="tonal"
+      class="mb-3"
+      text="Esta empresa no tiene el módulo de Nómina activo. Los datos DIAN (NIT, municipio, software y certificado) se habilitan automáticamente cuando se active el módulo de Nómina."
+    />
+
     <h2 class="text-subtitle-1 font-weight-bold mb-2">Datos de la empresa</h2>
     <v-row>
       <v-col cols="12" md="6">
         <v-text-field v-model="formState.name" label="Nombre" :rules="rules.name" class="mb-3" />
       </v-col>
       <v-col cols="12" md="6">
-        <v-text-field v-model="formState.nit" label="NIT" :rules="rules.nit" class="mb-3" />
+        <v-text-field
+          v-model="formState.nit"
+          label="NIT"
+          :rules="nitRules"
+          class="mb-3"
+          :hint="needsDianData ? 'Requerido por el módulo de Nómina (DSNE/DIAN)' : 'Opcional: solo lo necesita el módulo de Nómina (DSNE/DIAN)'"
+          persistent-hint
+        />
       </v-col>
       <v-col cols="12">
         <div class="d-flex align-center ga-3 mb-3">
@@ -265,12 +298,12 @@ const save = async () => {
           class="mb-3"
         />
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="needsDianData" cols="12" sm="6" md="3">
         <v-text-field
           v-model="formState.municipalityCode"
           label="Código municipio (DIVIPOLA)"
           :rules="rules.municipalityCode"
-          hint="5 dígitos, ej. 11001 (Bogotá)"
+          hint="5 dígitos, ej. 11001 (Bogotá). Lo requiere el DSNE"
           persistent-hint
           class="mb-3"
         />
@@ -287,9 +320,10 @@ const save = async () => {
       </v-col>
     </v-row>
 
-    <h2 class="text-subtitle-1 font-weight-bold mb-2">
-      Nómina electrónica (DIAN)
-    </h2>
+    <template v-if="needsDianData">
+      <h2 class="text-subtitle-1 font-weight-bold mb-2">
+        Nómina electrónica (DIAN)
+      </h2>
     <v-row>
       <v-col cols="12" sm="6" md="4">
         <v-select
@@ -352,7 +386,7 @@ const save = async () => {
       </v-col>
     </v-row>
 
-    <h2 class="text-subtitle-1 font-weight-bold mb-2">Firma digital del DSNE (XAdES-EPES)</h2>
+      <h2 class="text-subtitle-1 font-weight-bold mb-2">Firma digital del DSNE (XAdES-EPES)</h2>
     <v-row>
       <v-col cols="12" sm="6">
         <v-file-input
@@ -413,7 +447,8 @@ const save = async () => {
           Descargar certificado de prueba (.p12) para habilitación
         </v-btn>
       </v-col>
-    </v-row>
+      </v-row>
+    </template>
 
     <h2 class="text-subtitle-1 font-weight-bold mb-2">Configuración de jornada</h2>
     <v-row>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ICompanyView } from '~/composables/states/useCompanyState'
+import { FEATURE_FLAGS } from '~~/shared/feature-flags'
+import { useFeatureFlagsState } from '~/composables/states/useFeatureFlagsState'
 
 defineProps<{
   company: ICompanyView
@@ -26,6 +28,15 @@ const methodLabel: Record<number, string> = {
   49: 'Tarjeta débito',
   98: 'CATS – Nequi, Daviplata, etc.',
 }
+
+// Los datos DIAN/DSNE solo se muestran cuando el tenant usa Nómina.
+const { enabledFlags, fetchFlags } = useFeatureFlagsState()
+onMounted(async () => {
+  if (enabledFlags.value.length === 0) await fetchFlags()
+})
+const dianVisible = computed(() =>
+  enabledFlags.value.includes(FEATURE_FLAGS.PAYROLL),
+)
 </script>
 
 <template>
@@ -39,7 +50,9 @@ const methodLabel: Record<number, string> = {
       <v-card-title class="text-h6 font-weight-bold">
         {{ company.name }}
       </v-card-title>
-      <v-card-subtitle>NIT {{ company.nit }}</v-card-subtitle>
+      <v-card-subtitle>
+        {{ company.nit ? `NIT ${company.nit}` : 'Sin NIT configurado' }}
+      </v-card-subtitle>
       <template #append>
         <v-chip size="small" color="success" variant="tonal">Activa</v-chip>
       </template>
@@ -59,31 +72,37 @@ const methodLabel: Record<number, string> = {
         prepend-icon="mdi-file-document-outline"
       />
       <v-list-item
+        v-if="dianVisible"
         title="Municipio (DSNE)"
         :subtitle="company.municipalityCode || 'No configurado — requerido para el XML DIAN'"
         prepend-icon="mdi-map-marker-radius-outline"
       />
       <v-list-item
+        v-if="dianVisible"
         title="Frecuencia de nómina (DSNE)"
         :subtitle="frequencyLabel[company.payrollFrequency] ?? company.payrollFrequency"
         prepend-icon="mdi-calendar-month-outline"
       />
       <v-list-item
+        v-if="dianVisible"
         title="Ambiente DSNE"
         :subtitle="company.cenEnvironment === 1 ? 'Producción' : 'Pruebas (habilitación)'"
         prepend-icon="mdi-cloud-outline"
       />
       <v-list-item
+        v-if="dianVisible"
         title="Método de pago (DSNE)"
         :subtitle="methodLabel[company.paymentMethod ?? 42] ?? 'Consignación bancaria'"
         prepend-icon="mdi-cash-multiple"
       />
       <v-list-item
+        v-if="dianVisible"
         title="Software DIAN"
         :subtitle="company.softwareId && company.softwarePin ? `${company.softwareId} · PIN configurado` : 'No configurado — requerido antes de transmitir a la DIAN'"
         prepend-icon="mdi-application-cog-outline"
       />
       <v-list-item
+        v-if="dianVisible"
         title="Certificado de firma (DSNE)"
         :subtitle="company.cenCertificateConfigured ? `Configurado · Firma: ${company.cenSignerRole === 'thirdparty' ? 'proveedor (thirdparty)' : 'empleador (supplier)'}` : 'No configurado — el XML se descarga sin firma'"
         prepend-icon="mdi-certificate-outline"

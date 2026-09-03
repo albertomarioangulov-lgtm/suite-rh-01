@@ -484,6 +484,14 @@ export const buildCenForEmployee = async (
   source: ICenEmployeeSource,
 ): Promise<{ xml: string; filename: string }> => {
   const { payroll, company, employee, entry } = source
+  const nit = String(company.nit ?? '').replace(/\D/g, '')
+  if (!/^\d{8,10}$/.test(nit)) {
+    throw createError({
+      statusCode: 400,
+      message:
+        'Configura el NIT de la empresa en Configuración → Empresa antes de generar el DSNE.',
+    })
+  }
   const municipalityCode = company.municipalityCode?.trim() ?? ''
   if (!/^\d{5}$/.test(municipalityCode)) {
     throw createError({
