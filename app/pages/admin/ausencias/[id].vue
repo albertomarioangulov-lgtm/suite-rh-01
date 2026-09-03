@@ -16,9 +16,9 @@ const { currentRecord, loading, error, fetchRecordById, approveRecord, rejectRec
 
 const id = computed(() => String(route.params.id))
 const canManage = computed(() =>
-  [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(user.value?.role as never),
+  [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN].includes(user.value?.role as never),
 )
-const canDelete = computed(() => user.value?.role === ROLES.ADMIN)
+const canDelete = computed(() => user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN)
 
 const rejectOpen = ref(false)
 const rejectReason = ref('')

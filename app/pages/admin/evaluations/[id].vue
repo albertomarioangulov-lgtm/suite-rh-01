@@ -28,7 +28,7 @@ const paperOptions = [
 
 const canApprove = computed(() => {
   const role = user.value?.role as UserRole | undefined
-  return !!role && [ROLES.ADMIN, ROLES.MANAGER].includes(role)
+  return !!role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN].includes(role)
 })
 
 const STATUS_LABELS: Record<string, string> = {

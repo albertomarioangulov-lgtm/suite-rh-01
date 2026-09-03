@@ -10,7 +10,7 @@ const snackbar = useSnackbarState()
 
 const canEdit = computed(() => {
   const role = user.value?.role as UserRole | undefined
-  return !!role && [ROLES.ADMIN, ROLES.HR].includes(role)
+  return !!role && [ROLES.ADMIN, ROLES.HR, ROLES.SUPERADMIN].includes(role)
 })
 
 const tab = ref(0)

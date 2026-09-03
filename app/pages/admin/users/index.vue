@@ -25,7 +25,7 @@ const options = ref({
 
 const { viewMode } = useViewMode('admin-users-view-mode')
 
-const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN)
 
 const load = async () => {
   try {

@@ -27,16 +27,16 @@ const canViewUsers = computed(
   () =>
     isSuperAdmin.value ||
     (!!user.value &&
-      ([ROLES.ADMIN, ROLES.MANAGER] as UserRole[]).includes(user.value.role)),
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN] as UserRole[]).includes(user.value.role)),
 )
 const isAdmin = computed(
-  () => isSuperAdmin.value || user.value?.role === ROLES.ADMIN,
+  () => isSuperAdmin.value || user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN,
 )
 const canViewConfig = computed(
   () =>
     isSuperAdmin.value ||
     (!!user.value &&
-      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(
         user.value.role,
       )),
 )
@@ -44,7 +44,7 @@ const canViewAttendance = computed(
   () =>
     isSuperAdmin.value ||
     (!!user.value &&
-      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(
         user.value.role,
       )),
 )
@@ -52,7 +52,7 @@ const canViewEmployees = computed(
   () =>
     isSuperAdmin.value ||
     (!!user.value &&
-      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(
         user.value.role,
       )),
 )

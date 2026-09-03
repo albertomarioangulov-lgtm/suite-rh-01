@@ -16,12 +16,12 @@ const statusFilter = ref('')
 
 const canApprove = computed(() => {
   const role = user.value?.role as UserRole | undefined
-  return !!role && [ROLES.ADMIN, ROLES.MANAGER].includes(role)
+  return !!role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN].includes(role)
 })
-const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN)
 const canManageCampaigns = computed(() => {
   const role = user.value?.role as UserRole | undefined
-  return !!role && [ROLES.ADMIN, ROLES.HR].includes(role)
+  return !!role && [ROLES.ADMIN, ROLES.HR, ROLES.SUPERADMIN].includes(role)
 })
 
 const {

@@ -9,7 +9,7 @@ definePageMeta({
 })
 
 const { user, authFetch } = useAuthState()
-const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN)
 
 interface IEmailLogItem {
   _id: string

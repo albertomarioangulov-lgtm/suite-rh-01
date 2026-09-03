@@ -29,7 +29,7 @@ const role = computed(() => authUser.value?.role)
 const canManage = computed(
   () =>
     !!role.value &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(role.value),
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(role.value),
 )
 
 const editOpen = ref(false)

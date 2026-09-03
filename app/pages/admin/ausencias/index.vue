@@ -30,9 +30,9 @@ const role = computed(() => user.value?.role)
 const canManage = computed(
   () =>
     !!role.value &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(role.value),
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(role.value),
 )
-const canDelete = computed(() => role.value === ROLES.ADMIN)
+const canDelete = computed(() => role.value === ROLES.ADMIN || role.value === ROLES.SUPERADMIN)
 
 const options = ref({ page: 1, itemsPerPage: 10 })
 const employeeOptions = ref<Array<{ title: string; value: string }>>([])

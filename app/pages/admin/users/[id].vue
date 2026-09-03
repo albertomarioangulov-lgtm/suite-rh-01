@@ -34,7 +34,7 @@ const emailHistory = computed(() =>
   emailLogs.value.length > 0 ? [...(emailLogs.value[0]?.history ?? [])].reverse() : [],
 )
 
-const isAdmin = computed(() => authUser.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => authUser.value?.role === ROLES.ADMIN || authUser.value?.role === ROLES.SUPERADMIN)
 const canDelete = computed(
   () => isAdmin.value && !!currentUser.value && currentUser.value._id !== authUser.value?._id,
 )

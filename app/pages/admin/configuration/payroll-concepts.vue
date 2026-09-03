@@ -17,7 +17,7 @@ const snackbar = useSnackbarState()
 const canManage = computed(
   () =>
     !!user.value &&
-    [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(user.value.role),
+    [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN].includes(user.value.role),
 )
 
 interface IConceptRow {

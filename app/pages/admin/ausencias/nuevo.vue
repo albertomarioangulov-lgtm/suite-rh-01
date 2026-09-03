@@ -11,7 +11,7 @@ const snackbar = useSnackbarState()
 const { createRecord, error } = useAbsenceState()
 
 const canManage = computed(() =>
-  [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(user.value?.role as never),
+  [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN].includes(user.value?.role as never),
 )
 
 const saving = ref(false)

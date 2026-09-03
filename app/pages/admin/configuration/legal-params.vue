@@ -20,7 +20,7 @@ const {
   activateParams,
 } = useLegalParamsState()
 
-const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN)
 
 const createOpen = ref(false)
 const confirmOpen = ref(false)

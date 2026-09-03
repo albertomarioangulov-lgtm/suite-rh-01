@@ -11,7 +11,7 @@ const snackbar = useSnackbarState()
 const { company, loading, error, fetchCompany, updateCompany } =
   useCompanyState()
 
-const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN)
 const formOpen = ref(false)
 
 onMounted(async () => {

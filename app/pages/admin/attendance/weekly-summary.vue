@@ -14,7 +14,7 @@ const { weeklySummary, loading, error, fetchWeeklySummary } =
 const canView = computed(
   () =>
     !!user.value?.role &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(
       user.value.role,
     ),
 )

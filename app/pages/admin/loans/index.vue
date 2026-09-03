@@ -21,7 +21,7 @@ const {
 const canManage = computed(() => {
   const role = user.value?.role as UserRole | undefined
   return (
-    !!role && ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(role)
+    !!role && ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(role)
   )
 })
 
