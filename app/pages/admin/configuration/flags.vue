@@ -10,14 +10,52 @@ const { user, isSuperAdmin, authFetch } = useAuthState()
 const snackbar = useSnackbarState()
 const { enabledFlags, loading, error, fetchFlags } = useFeatureFlagsState()
 
-const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => user.value?.role === ROLES.ADMIN || user.value?.role === ROLES.SUPERADMIN)
 const saving = ref(false)
 const companyConfigured = ref<boolean | null>(null)
+const requests = ref<
+  Array<{
+    id: string
+    module: string
+    message: string
+    status: string
+    createdAt?: string
+  }>
+>([])
+const handlingRequest = ref<string | null>(null)
 
 onMounted(() => {
   fetchFlags()
   loadCompany()
+  if (isSuperAdmin.value) loadRequests()
 })
+
+const loadRequests = async () => {
+  try {
+    const data = await authFetch<{ items: typeof requests.value }>(
+      `${API_BASE}/module-requests`,
+    )
+    requests.value = data.items ?? []
+  } catch {
+    requests.value = []
+  }
+}
+
+const handleRequest = async (request: { id: string; module: string }) => {
+  handlingRequest.value = request.id
+  try {
+    await authFetch(`${API_BASE}/module-requests/${request.id}`, {
+      method: 'PUT',
+      body: { status: 'handled' },
+    })
+    snackbar.success('Solicitud marcada como atendida')
+    await loadRequests()
+  } catch {
+    snackbar.error('No se pudo actualizar la solicitud')
+  } finally {
+    handlingRequest.value = null
+  }
+}
 
 const loadCompany = async () => {
   try {
@@ -135,6 +173,38 @@ const descriptions: Record<string, string> = {
         </v-btn>
       </div>
     </v-alert>
+
+    <v-card v-if="isSuperAdmin && requests.length" class="mb-4">
+      <v-card-item>
+        <v-card-title class="text-subtitle-1 font-weight-bold">
+          Solicitudes de activación
+        </v-card-title>
+        <v-card-subtitle class="text-caption">
+          Pendientes de los clientes; resuelve activando el módulo desde aquí.
+        </v-card-subtitle>
+      </v-card-item>
+      <v-divider />
+      <v-list density="compact">
+        <v-list-item
+          v-for="request in requests.filter((item) => item.status === 'pending')"
+          :key="request.id"
+          :title="FEATURE_FLAG_LABELS[request.module as keyof typeof FEATURE_FLAG_LABELS] ?? request.module"
+          :subtitle="request.message || 'Sin detalle'"
+        >
+          <template #append>
+            <v-btn
+              size="small"
+              variant="tonal"
+              color="primary"
+              :loading="handlingRequest === request.id"
+              @click="handleRequest(request)"
+            >
+              Marcar atendida
+            </v-btn>
+          </template>
+        </v-list-item>
+      </v-list>
+    </v-card>
 
     <v-card :loading="loading">
       <v-card-item>
