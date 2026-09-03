@@ -6,7 +6,9 @@
  * no existe registro público en la app.
  *
  * Uso:
- *   node scripts/create-admin.mjs admin@cliente.com "Nombre Admin" "ClaveSegura123!"
+ *   node scripts/create-admin.mjs admin@cliente.com "Nombre Admin" "ClaveSegura123!" [rol]
+ *
+ * rol: admin (por defecto) | superadmin (cuenta de plataforma/AMAV)
  *
  * Requiere MONGODB_URI y MONGODB_NAME en .env (o variables de entorno) con
  * la base del cliente recién creada.
@@ -18,6 +20,12 @@ import bcrypt from 'bcrypt'
 const email = process.argv[2] ?? 'admin@cliente.com'
 const name = process.argv[3] ?? 'Administrador'
 const password = process.argv[4] ?? 'Admin123!'
+const role = process.argv[5] ?? 'admin'
+
+if (!['admin', 'superadmin'].includes(role)) {
+  console.error('Rol inválido. Usa: admin | superadmin')
+  process.exit(1)
+}
 
 const uri = `${process.env.MONGODB_URI}/${process.env.MONGODB_NAME || 'nomina_app'}?retryWrites=true&w=majority`
 await mongoose.connect(uri)
@@ -31,7 +39,7 @@ await users.updateOne(
       name,
       email,
       password: hash,
-      role: 'admin',
+      role,
       active: true,
       createdAt: new Date(),
       updatedAt: new Date(),

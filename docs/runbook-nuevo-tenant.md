@@ -77,7 +77,10 @@ mismas variables):
 # 1. Parámetros legales vigentes (los módulos los requieren para cálculos)
 node scripts/seed-legal-params-2026.mjs
 
-# 2. Primer administrador (no hay registro público)
+# 2. Cuentas iniciales (no hay registro público):
+#    - superadmin de AMAV (activa módulos/licencia; el admin del cliente no puede)
+#    - admin del cliente (gestiona usuarios y configuración de su empresa)
+node scripts/create-admin.mjs amav@tuempresa.com "Suite RH (AMAV)" "ClaveAmav123!" superadmin
 node scripts/create-admin.mjs admin@cliente.com "Admin Cliente" "ClaveTemporal123!"
 
 # 3. Opcional: plantillas de evaluación demo por cargo
