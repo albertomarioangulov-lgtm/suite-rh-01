@@ -10,20 +10,7 @@ const props = defineProps<{
 const { enabledFlags } = useFeatureFlagsState()
 const { openRequest } = useModuleRequestState()
 
-/** Frase corta por módulo para el aviso ("gestionar la asistencia"...). */
-const ACTION_TEXT: Partial<Record<FeatureFlag, string>> = {
-  attendance: 'gestionar la asistencia',
-  absences: 'gestionar las ausencias y permisos',
-  shifts: 'gestionar turnos y horarios',
-  payroll: 'gestionar la nómina',
-  loans: 'gestionar préstamos',
-  contracts: 'gestionar contratos',
-  performance: 'gestionar evaluaciones de desempeño',
-  analytics: 'ver reportes y analítica',
-  self_service: 'usar el portal del empleado',
-  employees: 'gestionar empleados',
-  recruitment: 'gestionar reclutamiento',
-}
+const menuOpen = ref(false)
 
 const missing = computed(() =>
   (props.suggest ?? []).filter(
@@ -31,34 +18,85 @@ const missing = computed(() =>
   ),
 )
 
-const sentences = computed(() =>
-  missing.value.map(
-    (flag) =>
-      `¿Quieres ${ACTION_TEXT[flag] ?? 'usar este módulo'}? Solicita la activación del módulo de ${FEATURE_FLAG_LABELS[flag]}.`,
-  ),
-)
+const choose = (flag: FeatureFlag) => {
+  menuOpen.value = false
+  openRequest(flag)
+}
 </script>
 
 <template>
-  <v-alert
-    v-if="sentences.length"
-    type="info"
-    variant="tonal"
-    density="compact"
-    class="mb-3"
+  <v-menu
+    v-if="missing.length"
+    v-model="menuOpen"
+    location="bottom end"
+    offset="8"
   >
-    <div class="d-flex align-center ga-2 flex-wrap">
-      <span class="text-body-2">{{ sentences.join(' ') }}</span>
+    <template #activator="{ props: activatorProps }">
       <v-btn
-        variant="text"
-        color="primary"
+        v-bind="activatorProps"
+        icon
         size="small"
-        prepend-icon="mdi-lock-open-variant-outline"
-        class="text-none"
-        @click="openRequest(null)"
+        variant="tonal"
+        color="info"
+        title="Módulos disponibles por activar"
+        class="module-hint-btn"
       >
-        Solicitar activación
+        <v-icon>mdi-lightbulb-on-outline</v-icon>
+        <span class="module-hint-dot" />
       </v-btn>
-    </div>
-  </v-alert>
+    </template>
+
+    <v-card min-width="300" max-width="380">
+      <v-card-item>
+        <v-card-title class="text-subtitle-2 font-weight-bold">
+          Módulos por activar
+        </v-card-title>
+        <v-card-subtitle class="text-caption">
+          AMAV puede activarlos según tu plan. Presiona uno para solicitarlo.
+        </v-card-subtitle>
+      </v-card-item>
+      <v-divider />
+      <v-list density="compact">
+        <v-list-item
+          v-for="flag in missing"
+          :key="flag"
+          :title="FEATURE_FLAG_LABELS[flag]"
+          prepend-icon="mdi-lock-open-variant-outline"
+          @click="choose(flag)"
+        >
+          <template #append>
+            <v-icon size="small">mdi-chevron-right</v-icon>
+          </template>
+        </v-list-item>
+      </v-list>
+    </v-card>
+  </v-menu>
 </template>
+
+<style scoped>
+.module-hint-btn {
+  position: relative;
+  animation: module-hint-pulse 2.4s ease-in-out infinite;
+}
+
+.module-hint-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-warning));
+  border: 1px solid rgb(var(--v-theme-surface));
+}
+
+@keyframes module-hint-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.18);
+  }
+}
+</style>
