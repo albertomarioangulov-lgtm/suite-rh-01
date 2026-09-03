@@ -110,6 +110,65 @@ const departmentForm = ref({
 })
 const savingDepartment = ref(false)
 
+/** Paleta para sugerir colores de área visualmente distintos. */
+const AREA_COLOR_PALETTE = [
+  '#3B82F6',
+  '#10B981',
+  '#F59E0B',
+  '#EF4444',
+  '#8B5CF6',
+  '#06B6D4',
+  '#F97316',
+  '#EC4899',
+  '#84CC16',
+  '#14B8A6',
+  '#6366F1',
+  '#E11D48',
+  '#0EA5E9',
+  '#A855F7',
+  '#22C55E',
+  '#F43F5E',
+]
+
+const usedAreaColors = () =>
+  new Set(
+    departments.value
+      .map((department) => (department.color ?? '').toLowerCase())
+      .filter(Boolean),
+  )
+
+/**
+ * Sugiere un color que no repita los de las áreas existentes. Si la paleta
+ * se agota, rota para mantener variedad.
+ */
+const suggestAreaColor = (): string => {
+  const used = usedAreaColors()
+  const free = AREA_COLOR_PALETTE.find(
+    (color) => !used.has(color.toLowerCase()),
+  )
+  if (free) return free
+  return AREA_COLOR_PALETTE[departments.value.length % AREA_COLOR_PALETTE.length]
+}
+
+/** Sugiere un color distinto al actual (y que no repita áreas existentes). */
+const suggestAnotherColor = () => {
+  const used = usedAreaColors()
+  const current = departmentForm.value.color.toLowerCase()
+  const free = AREA_COLOR_PALETTE.find(
+    (color) =>
+      color.toLowerCase() !== current && !used.has(color.toLowerCase()),
+  )
+  if (free) {
+    departmentForm.value.color = free
+    return
+  }
+  const index = AREA_COLOR_PALETTE.findIndex(
+    (color) => color.toLowerCase() === current,
+  )
+  departmentForm.value.color =
+    AREA_COLOR_PALETTE[(index + 1) % AREA_COLOR_PALETTE.length]
+}
+
 const openDepartment = (department?: IDepartmentView) => {
   departmentForm.value = department
     ? {
@@ -125,7 +184,7 @@ const openDepartment = (department?: IDepartmentView) => {
         name: '',
         code: '',
         description: '',
-        color: '#1867C0',
+        color: suggestAreaColor(),
         manager: '',
       }
   departmentDialog.value = true
@@ -587,6 +646,18 @@ const orgSunburstOptions = computed(() => {
             ></span>
             {{ item.name }}
           </template>
+          <template #[`item.managerName`]="{ item }">
+            <v-chip
+              v-if="!item.managerName"
+              size="x-small"
+              color="warning"
+              variant="tonal"
+              prepend-icon="mdi-alert-outline"
+            >
+              Sin jefe
+            </v-chip>
+            <span v-else>{{ item.managerName }}</span>
+          </template>
           <template #[`item.actions`]="{ item }">
             <v-btn icon="mdi-pencil" size="small" variant="text" @click="openDepartment(item)" />
             <v-btn
@@ -691,23 +762,32 @@ const orgSunburstOptions = computed(() => {
               <span class="text-body-2">Color del área</span>
             </v-col>
             <v-col cols="7">
-              <v-menu v-model="colorMenu" :close-on-content-click="false" offset-y>
-                <template #activator="{ props }">
-                  <v-btn v-bind="props" variant="tonal" class="text-none">
-                    <span
-                      class="mr-2"
-                      style="width: 18px; height: 18px; border-radius: 6px; display: inline-block"
-                      :style="{ background: departmentForm.color }"
-                    ></span>
-                    {{ departmentForm.color }}
-                  </v-btn>
-                </template>
-                <v-color-picker
-                  v-model="departmentForm.color"
-                  hide-inputs
-                  mode="hex"
+              <div class="d-flex align-center ga-1">
+                <v-menu v-model="colorMenu" :close-on-content-click="false" offset-y>
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" variant="tonal" class="text-none">
+                      <span
+                        class="mr-2"
+                        style="width: 18px; height: 18px; border-radius: 6px; display: inline-block"
+                        :style="{ background: departmentForm.color }"
+                      ></span>
+                      {{ departmentForm.color }}
+                    </v-btn>
+                  </template>
+                  <v-color-picker
+                    v-model="departmentForm.color"
+                    hide-inputs
+                    mode="hex"
+                  />
+                </v-menu>
+                <v-btn
+                  icon="mdi-dice-5-outline"
+                  size="small"
+                  variant="text"
+                  title="Sugerir otro color"
+                  @click="suggestAnotherColor"
                 />
-              </v-menu>
+              </div>
             </v-col>
           </v-row>
           <v-autocomplete
