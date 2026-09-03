@@ -1,5 +1,6 @@
 import { User } from '~~/server/models/User'
 import { isAdmin, requireAuth } from '~~/server/utils/authorize'
+import { ROLES } from '~~/shared/auth'
 import {
   mongoIdSchema,
   userUpdateSchema,
@@ -23,6 +24,24 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const actor = await User.findById(authPayload.userId).select('role').lean()
+  const target = await User.findById(id).select('role').lean()
+  if (!target) {
+    throw createError({ statusCode: 404, message: 'Usuario no encontrado' })
+  }
+  // Ni el admin de la empresa ni un super admin pueden escalar/demover a otro
+  // super admin sin ser super admin.
+  if (
+    actor?.role !== ROLES.SUPERADMIN &&
+    (data.role === ROLES.SUPERADMIN || target.role === ROLES.SUPERADMIN)
+  ) {
+    throw createError({
+      statusCode: 403,
+      message:
+        'Solo un super administrador puede crear o modificar super administradores.',
+    })
+  }
+
   // Un usuario puede editar su perfil, pero no escalar rol ni auto-desactivarse.
   if (!isAdminUser && (data.role !== undefined || data.active !== undefined)) {
     throw createError({
@@ -32,12 +51,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await User.findById(id)
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'Usuario no encontrado',
-    })
-  }
 
   if (data.email && data.email !== user.email) {
     const existingUser = await User.findOne({ email: data.email })

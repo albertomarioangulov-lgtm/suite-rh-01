@@ -26,6 +26,19 @@ export const FEATURE_FLAG_LIST = Object.values(FEATURE_FLAGS) as FeatureFlag[]
 
 /** Defaults por rol: qué módulos ve cada rol cuando el flag está activo. */
 export const DEFAULT_FLAGS_BY_ROLE: Record<UserRole, FeatureFlag[]> = {
+  superadmin: [
+    FEATURE_FLAGS.EMPLOYEES,
+    FEATURE_FLAGS.ATTENDANCE,
+    FEATURE_FLAGS.SHIFTS,
+    FEATURE_FLAGS.ABSENCES,
+    FEATURE_FLAGS.PAYROLL,
+    FEATURE_FLAGS.LOANS,
+    FEATURE_FLAGS.ANALYTICS,
+    FEATURE_FLAGS.PERFORMANCE,
+    FEATURE_FLAGS.RECRUITMENT,
+    FEATURE_FLAGS.CONTRACTS,
+    FEATURE_FLAGS.SELF_SERVICE,
+  ],
   admin: [
     FEATURE_FLAGS.EMPLOYEES,
     FEATURE_FLAGS.ATTENDANCE,

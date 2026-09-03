@@ -10,9 +10,12 @@ const flagUpdateSchema = z.object({
   enabled: z.boolean(),
 })
 
-/** Activa/desactiva un módulo del tenant (admin). */
+/**
+ * Activa/desactiva un módulo del tenant. Solo super admin (AMAV/plataforma):
+ * la activación de módulos corresponde a la licencia, no al admin del cliente.
+ */
 export default defineEventHandler(async (event) => {
-  await authorize(event, [ROLES.ADMIN])
+  await authorize(event, [ROLES.SUPERADMIN])
 
   const tenantId = await getTenantId(event)
   if (!tenantId) {

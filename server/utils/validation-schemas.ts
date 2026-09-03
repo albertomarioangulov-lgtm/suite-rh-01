@@ -30,7 +30,13 @@ export const emailSchema = z.string().email('Correo electrónico inválido')
 
 export const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
 
-export const roleSchema = z.enum([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.EMPLOYEE])
+export const roleSchema = z.enum([
+  ROLES.SUPERADMIN,
+  ROLES.ADMIN,
+  ROLES.MANAGER,
+  ROLES.HR,
+  ROLES.EMPLOYEE,
+])
 
 export const loginSchema = z.object({
   email: emailSchema,

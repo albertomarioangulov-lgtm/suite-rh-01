@@ -3,6 +3,7 @@
 // ============================================================
 
 export const ROLES = {
+  SUPERADMIN: 'superadmin',
   ADMIN: 'admin',
   MANAGER: 'manager',
   HR: 'hr',
@@ -12,11 +13,22 @@ export const ROLES = {
 export type UserRole = (typeof ROLES)[keyof typeof ROLES]
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  superadmin: 'Super administrador (plataforma)',
   admin: 'Administrador',
   manager: 'Gerente',
   hr: 'Recursos Humanos',
   employee: 'Empleado',
 }
+
+/**
+ * El super administrador (AMAV/plataforma) pasa cualquier guard de rol:
+ * opera sobre tenants, licencias y configuración global.
+ */
+export const roleIsAllowed = (
+  role: UserRole | undefined | null,
+  allowedRoles: UserRole[],
+): boolean =>
+  !!role && (allowedRoles.includes(role) || role === ROLES.SUPERADMIN)
 
 export interface IUser {
   _id: string

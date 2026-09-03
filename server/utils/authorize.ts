@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { ROLES, type UserRole } from '~~/shared/auth'
+import { ROLES, roleIsAllowed, type UserRole } from '~~/shared/auth'
 import { User } from '~~/server/models/User'
 
 export interface AuthSessionPayload {
@@ -35,7 +35,11 @@ const checkRoles = async (
   const { userId } = await requireAuth(event)
 
   const user = await User.findById(userId).select('role active').lean()
-  if (!user || !user.active || !allowedRoles.includes(user.role as UserRole)) {
+  if (
+    !user ||
+    !user.active ||
+    !roleIsAllowed(user.role as UserRole, allowedRoles)
+  ) {
     throw createError({
       statusCode: 403,
       message: 'No tienes permisos para realizar esta acción.',
@@ -59,7 +63,13 @@ export const isAdmin = async (event: H3Event): Promise<boolean> => {
   try {
     const { userId } = await requireAuth(event)
     const user = await User.findById(userId).select('role active').lean()
-    return !!user && user.active && user.role === ROLES.ADMIN
+    return (
+      !!user &&
+      user.active &&
+      ([ROLES.ADMIN, ROLES.SUPERADMIN] as UserRole[]).includes(
+        user.role as UserRole,
+      )
+    )
   } catch {
     return false
   }
@@ -73,7 +83,9 @@ export const isAdminOrManager = async (event: H3Event): Promise<boolean> => {
     return (
       !!user &&
       user.active &&
-      ([ROLES.ADMIN, ROLES.MANAGER] as UserRole[]).includes(user.role as UserRole)
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN] as UserRole[]).includes(
+        user.role as UserRole,
+      )
     )
   } catch {
     return false

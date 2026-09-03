@@ -16,6 +16,18 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const data = validateWithSchema(userCreateSchema, body)
 
+  // Solo otro super admin puede crear un super admin (evita escalación).
+  if (data.role === ROLES.SUPERADMIN) {
+    const actor = await User.findById(actorId).select('role').lean()
+    if (actor?.role !== ROLES.SUPERADMIN) {
+      throw createError({
+        statusCode: 403,
+        message:
+          'Solo un super administrador puede crear otro super administrador.',
+      })
+    }
+  }
+
   const existingUser = await User.findOne({ email: data.email })
   if (existingUser) {
     throw createError({
