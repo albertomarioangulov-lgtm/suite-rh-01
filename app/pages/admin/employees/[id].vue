@@ -7,6 +7,8 @@ import type {
   IEmployeePayload,
 } from '~/composables/states/useEmployeeState'
 import { absenceTypeLabel } from '~/composables/states/useAbsenceState'
+import { FEATURE_FLAGS } from '~~/shared/feature-flags'
+import { useFeatureFlagsState } from '~/composables/states/useFeatureFlagsState'
 
 definePageMeta({
   middleware: 'auth',
@@ -59,16 +61,31 @@ const rejectOpen = ref(false)
 const rejectingAbsence = ref<{ _id: string; type: string } | null>(null)
 const rejectReason = ref('')
 const absenceSaving = ref(false)
+const { enabledFlags, fetchFlags } = useFeatureFlagsState()
+const attendanceOn = computed(() =>
+  enabledFlags.value.includes(FEATURE_FLAGS.ATTENDANCE),
+)
+const absencesOn = computed(() =>
+  enabledFlags.value.includes(FEATURE_FLAGS.ABSENCES),
+)
+const shiftsOn = computed(() =>
+  enabledFlags.value.includes(FEATURE_FLAGS.SHIFTS),
+)
+const contractsOn = computed(() =>
+  enabledFlags.value.includes(FEATURE_FLAGS.CONTRACTS),
+)
 
 const load = async () => {
   try {
     await fetchEmployeeById(employeeId.value)
-    if (canManage.value) {
+    if (canManage.value && attendanceOn.value) {
       await fetchAttendanceRecords({
         employeeId: employeeId.value,
         limit: 8,
         page: 1,
       })
+    }
+    if (canManage.value && absencesOn.value) {
       await fetchAbsenceRecords({
         employeeId: employeeId.value,
         limit: 5,
@@ -161,10 +178,11 @@ const fetchEmploymentHistory = async () => {
   }
 }
 
-watch(employeeId, () => {
-  load()
-  fetchEmploymentHistory()
-  fetchShifts().catch(() => {})
+watch(employeeId, async () => {
+  if (!enabledFlags.value.length) await fetchFlags()
+  await load()
+  if (contractsOn.value) fetchEmploymentHistory()
+  if (shiftsOn.value) fetchShifts().catch(() => {})
 }, { immediate: true })
 
 const rehireOpen = ref(false)
@@ -389,6 +407,8 @@ const doReject = async () => {
             variant="tonal"
             prepend-icon="mdi-clock-in"
             :to="`/admin/attendance?employeeId=${currentEmployee._id}`"
+            :disabled="!attendanceOn"
+            :title="attendanceOn ? undefined : 'Módulo de asistencia no activo'"
           >
             Asistencia
           </v-btn>
@@ -396,6 +416,8 @@ const doReject = async () => {
             variant="tonal"
             prepend-icon="mdi-calendar-edit-outline"
             :to="`/admin/ausencias?employeeId=${currentEmployee._id}`"
+            :disabled="!absencesOn"
+            :title="absencesOn ? undefined : 'Módulo de ausencias no activo'"
           >
             Ausencias
           </v-btn>
@@ -459,7 +481,7 @@ const doReject = async () => {
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" md="6" lg="3">
+      <v-col v-if="shiftsOn" cols="12" md="6" lg="3">
         <v-card class="h-100">
           <v-card-text>
             <div class="d-flex align-center ga-2 mb-2">
@@ -480,7 +502,7 @@ const doReject = async () => {
     <!-- Historial: asistencia y ausencias -->
     <v-row density="compact">
       <v-col cols="12" lg="7">
-        <v-card v-if="canManage" class="h-100">
+        <v-card v-if="canManage && attendanceOn" class="h-100">
           <v-card-item>
             <v-card-title class="text-subtitle-1 font-weight-bold">
               Asistencia reciente
@@ -539,7 +561,7 @@ const doReject = async () => {
       </v-col>
 
       <v-col cols="12" lg="5">
-        <v-card v-if="canManage" class="h-100">
+        <v-card v-if="canManage && absencesOn" class="h-100">
           <v-card-item>
             <v-card-title class="text-subtitle-1 font-weight-bold">
               Ausencias recientes
