@@ -97,7 +97,21 @@ const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida
 
 export const companyUpdateSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es requerido').optional(),
-  nit: z.string().trim().min(5, 'NIT inválido').optional(),
+  /**
+   * NIT opcional: solo lo exige el módulo de Nómina (DSNE/DIAN). Vacío se
+   * acepta para clientes sin nómina; si se informa, se valida el formato
+   * (8-10 dígitos, tolera puntos/guiones).
+   */
+  nit: z
+    .string()
+    .trim()
+    .refine(
+      (value) =>
+        value === '' ||
+        /^\d{8,10}$/.test(String(value).replace(/\D/g, '')),
+      'NIT inválido (8-10 dígitos)',
+    )
+    .optional(),
   logo: z.string().max(600000, 'La imagen del logo es demasiado grande').optional(),
   address: z.string().trim().min(1, 'La dirección es requerida').optional(),
   municipalityCode: z
