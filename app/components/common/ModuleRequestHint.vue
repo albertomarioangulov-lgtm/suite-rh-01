@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { FEATURE_FLAG_LABELS, useFeatureFlagsState } from '~/composables/states/useFeatureFlagsState'
-import type { FeatureFlag } from '~~/shared/feature-flags'
+import { ROLES } from '~~/shared/auth'
+import {
+  FEATURE_FLAG_LIST,
+  UNBUILT_MODULES,
+  type FeatureFlag,
+} from '~~/shared/feature-flags'
 
 const props = defineProps<{
   /** Módulos sugeridos para este contexto (p. ej. ['attendance', 'absences']). */
@@ -9,11 +14,28 @@ const props = defineProps<{
 
 const { enabledFlags } = useFeatureFlagsState()
 const { openRequest } = useModuleRequestState()
+const { user } = useAuthState()
 
 const menuOpen = ref(false)
 
+const isStaff = computed(
+  () =>
+    !!user.value &&
+    [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN].includes(
+      user.value.role,
+    ),
+)
+
+// Sin `suggest`, aplica a todos los módulos construidos del catálogo.
+const candidates = computed<FeatureFlag[]>(() =>
+  (props.suggest && props.suggest.length
+    ? props.suggest
+    : FEATURE_FLAG_LIST
+  ).filter((flag) => !UNBUILT_MODULES.includes(flag)),
+)
+
 const missing = computed(() =>
-  (props.suggest ?? []).filter(
+  candidates.value.filter(
     (flag) => !enabledFlags.value.includes(flag),
   ),
 )
@@ -26,7 +48,7 @@ const choose = (flag: FeatureFlag) => {
 
 <template>
   <v-menu
-    v-if="missing.length"
+    v-if="isStaff && missing.length"
     v-model="menuOpen"
     location="bottom end"
     offset="8"

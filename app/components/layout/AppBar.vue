@@ -25,6 +25,8 @@ const toggleDrawer = () => emit('update:drawer', !props.drawer)
 
     <LayoutTenantSwitcher />
 
+    <CommonModuleRequestHint />
+
     <ClientOnly>
       <v-tooltip location="bottom" text="Ayuda de esta página">
         <template #activator="{ props: tooltipProps }">
