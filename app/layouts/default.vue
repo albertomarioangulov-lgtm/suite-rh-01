@@ -25,4 +25,5 @@ onMounted(async () => {
   </v-main>
 
   <HelpDialog />
+  <CommonModuleRequestDialog />
 </template>
