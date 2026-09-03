@@ -23,9 +23,18 @@ export const useAuthState = () => {
   const user = computed<AuthUser | null>(() => (session.user.value as AuthUser | null) ?? null)
   const isLoggedIn = computed(() => session.loggedIn.value)
   const isAuthenticated = computed(() => isLoggedIn.value)
-  const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+  const isSuperAdmin = computed(() => user.value?.role === ROLES.SUPERADMIN)
+  const isAdmin = computed(
+    () =>
+      !!user.value &&
+      ([ROLES.ADMIN, ROLES.SUPERADMIN] as UserRole[]).includes(user.value.role),
+  )
   const isAdminOrManager = computed(
-    () => !!user.value && ([ROLES.ADMIN, ROLES.MANAGER] as UserRole[]).includes(user.value.role),
+    () =>
+      !!user.value &&
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN] as UserRole[]).includes(
+        user.value.role,
+      ),
   )
 
   const authFetch = async <T = unknown>(
@@ -94,6 +103,7 @@ export const useAuthState = () => {
     user,
     isLoggedIn,
     isAuthenticated,
+    isSuperAdmin,
     isAdmin,
     isAdminOrManager,
     hasRole,

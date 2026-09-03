@@ -18,7 +18,11 @@ const today = new Intl.DateTimeFormat('es-CO', {
 const roleLabel = computed(() => (user.value ? ROLE_LABELS[user.value.role] : ''))
 
 const canViewUsers = computed(
-  () => !!user.value && ([ROLES.ADMIN, ROLES.MANAGER] as UserRole[]).includes(user.value.role),
+  () =>
+    !!user.value &&
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN] as UserRole[]).includes(
+      user.value.role,
+    ),
 )
 
 const quickLinks = computed(() => [

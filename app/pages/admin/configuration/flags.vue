@@ -6,7 +6,7 @@ import { FEATURE_FLAG_LABELS, useFeatureFlagsState } from '~/composables/states/
 
 definePageMeta({ middleware: 'auth' })
 
-const { user, authFetch } = useAuthState()
+const { user, isSuperAdmin, authFetch } = useAuthState()
 const snackbar = useSnackbarState()
 const { enabledFlags, loading, error, fetchFlags } = useFeatureFlagsState()
 
@@ -94,7 +94,7 @@ const descriptions: Record<string, string> = {
     />
 
     <v-alert
-      v-if="!isAdmin"
+      v-if="!isAdmin && !isSuperAdmin"
       type="info"
       variant="tonal"
       density="compact"
@@ -103,7 +103,16 @@ const descriptions: Record<string, string> = {
     />
 
     <v-alert
-      v-if="isAdmin && companyConfigured === false"
+      v-if="isAdmin && !isSuperAdmin"
+      type="info"
+      variant="tonal"
+      density="compact"
+      class="mb-4"
+      text="La activación de módulos corresponde al plan/licencia y la gestiona el super administrador (AMAV). Aquí puedes ver qué módulos están activos para la empresa."
+    />
+
+    <v-alert
+      v-if="isSuperAdmin && companyConfigured === false"
       type="warning"
       variant="tonal"
       density="compact"
@@ -151,7 +160,7 @@ const descriptions: Record<string, string> = {
               color="primary"
               density="compact"
               hide-details
-              :disabled="!isAdmin || saving"
+              :disabled="!isSuperAdmin || saving"
               @update:model-value="toggle(flag, $event)"
             />
           </template>

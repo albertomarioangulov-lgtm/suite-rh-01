@@ -16,7 +16,10 @@ const menuItems = computed(() => {
     { title: 'Perfil', icon: 'mdi-account-circle-outline', to: '/profile' },
   ]
   const role = user.value?.role
-  if (role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role)) {
+  if (
+    role &&
+    [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role)
+  ) {
     items.push({
       title: 'Configuración',
       icon: 'mdi-office-building-outline',

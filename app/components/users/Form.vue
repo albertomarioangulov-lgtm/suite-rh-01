@@ -18,15 +18,28 @@ const isNew = computed(() => !props.user)
 const { user: authUser } = useAuthState()
 const { createUser, updateUser } = useUserState()
 
-const isAdmin = computed(() => authUser.value?.role === ROLES.ADMIN)
+const isAdmin = computed(
+  () =>
+    !!authUser.value &&
+    [ROLES.ADMIN, ROLES.SUPERADMIN].includes(authUser.value.role),
+)
+const isSuperAdmin = computed(() => authUser.value?.role === ROLES.SUPERADMIN)
 const canManageRole = computed(() => isAdmin.value)
 
-const roleOptions = [
+const roleOptions = computed(() => [
+  ...(isSuperAdmin.value
+    ? [
+        {
+          title: 'Super administrador (plataforma)',
+          value: ROLES.SUPERADMIN,
+        },
+      ]
+    : []),
   { title: 'Administrador', value: ROLES.ADMIN },
   { title: 'Gerente', value: ROLES.MANAGER },
   { title: 'Recursos Humanos', value: ROLES.HR },
   { title: 'Empleado', value: ROLES.EMPLOYEE },
-]
+])
 
 const formState = reactive({
   name: props.user?.name ?? '',

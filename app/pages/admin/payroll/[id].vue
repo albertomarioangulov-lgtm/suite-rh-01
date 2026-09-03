@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ROLES } from '~~/shared/auth'
+import { ROLES, type UserRole } from '~~/shared/auth'
 import { formatDate } from '~~/shared/utils/datetime-helpers'
 import { formatCOP } from '~/utils/number-helpers'
 import type { IPayrollEntry } from '~/composables/states/usePayrollState'
@@ -69,13 +69,19 @@ const cycleNameOf = computed(() => {
   return typeof cycle === 'string' ? cycle : ''
 })
 const canApprove = computed(
-  () => !!role.value && [ROLES.ADMIN, ROLES.MANAGER].includes(role.value),
+  () =>
+    !!role.value &&
+    [ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN].includes(role.value),
 )
-const canPay = computed(() => role.value === ROLES.ADMIN)
+const canPay = computed(() =>
+  [ROLES.ADMIN, ROLES.SUPERADMIN].includes(role.value as UserRole),
+)
 const canAdjust = computed(
   () =>
     !!role.value &&
-    [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role.value),
+    [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN].includes(
+      role.value,
+    ),
 )
 
 const load = async () => {

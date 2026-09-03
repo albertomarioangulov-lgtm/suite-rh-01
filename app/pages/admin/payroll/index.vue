@@ -30,12 +30,18 @@ const role = computed(() => user.value?.role)
 const canManage = computed(
   () =>
     !!role.value &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(role.value),
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(
+      role.value,
+    ),
 )
 const canApprove = computed(
-  () => !!role.value && [ROLES.ADMIN, ROLES.MANAGER].includes(role.value),
+  () =>
+    !!role.value &&
+    [ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN].includes(role.value),
 )
-const canPay = computed(() => role.value === ROLES.ADMIN)
+const canPay = computed(() =>
+  [ROLES.ADMIN, ROLES.SUPERADMIN].includes(role.value as UserRole),
+)
 
 const statusFilter = ref('')
 const options = ref({ page: 1, itemsPerPage: 10 })

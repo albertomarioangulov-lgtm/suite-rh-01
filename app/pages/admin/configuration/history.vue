@@ -10,7 +10,11 @@ const { user } = useAuthState()
 const { auditLogs, loading, error, fetchAuditLogs } = useCompanyState()
 
 const canView = computed(
-  () => !!user.value && ([ROLES.ADMIN, ROLES.MANAGER] as UserRole[]).includes(user.value.role),
+  () =>
+    !!user.value &&
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERADMIN] as UserRole[]).includes(
+      user.value.role,
+    ),
 )
 
 onMounted(() => {

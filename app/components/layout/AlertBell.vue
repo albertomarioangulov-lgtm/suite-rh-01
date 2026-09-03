@@ -87,13 +87,13 @@ const alertTarget = (alert: IBellAlert) => {
   if (alert.module === 'payroll') return '/admin/payroll'
   if (alert.module === 'evaluation') {
     const role = user.value?.role
-    return role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role)
+    return role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN].includes(role)
       ? '/admin/evaluations'
       : ''
   }
   if (alert.module === 'absence' && employeeName(alert)) {
     const role = user.value?.role
-    return role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR].includes(role)
+    return role && [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN].includes(role)
       ? `/admin/employees/${String((alert.employee as { _id: string })._id)}`
       : '/portal'
   }

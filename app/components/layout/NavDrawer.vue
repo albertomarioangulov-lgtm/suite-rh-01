@@ -17,32 +17,44 @@ const drawer = computed({
 const { user } = useAuthState()
 const { fetchFlags, isEnabled } = useFeatureFlagsState()
 
+const isSuperAdmin = computed(() => user.value?.role === ROLES.SUPERADMIN)
+
 onMounted(() => {
   fetchFlags()
 })
 
 const canViewUsers = computed(
-  () => !!user.value && ([ROLES.ADMIN, ROLES.MANAGER] as UserRole[]).includes(user.value.role),
+  () =>
+    isSuperAdmin.value ||
+    (!!user.value &&
+      ([ROLES.ADMIN, ROLES.MANAGER] as UserRole[]).includes(user.value.role)),
 )
-const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
+const isAdmin = computed(
+  () => isSuperAdmin.value || user.value?.role === ROLES.ADMIN,
+)
 const canViewConfig = computed(
   () =>
-    !!user.value &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(user.value.role),
+    isSuperAdmin.value ||
+    (!!user.value &&
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+        user.value.role,
+      )),
 )
 const canViewAttendance = computed(
   () =>
-    !!user.value &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
-      user.value.role,
-    ),
+    isSuperAdmin.value ||
+    (!!user.value &&
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+        user.value.role,
+      )),
 )
 const canViewEmployees = computed(
   () =>
-    !!user.value &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
-      user.value.role,
-    ),
+    isSuperAdmin.value ||
+    (!!user.value &&
+      ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+        user.value.role,
+      )),
 )
 const canViewReports = canViewEmployees
 
