@@ -111,7 +111,11 @@ const EmployeeSchema = new Schema(
 EmployeeSchema.index({ tenantId: 1, document: 1 }, { unique: true })
 EmployeeSchema.index(
   { tenantId: 1, email: 1 },
-  { unique: true, sparse: true },
+  {
+    unique: true,
+    // Solo indexa emails reales (string): null/ausente nunca colisionan.
+    partialFilterExpression: { email: { $type: 'string' } },
+  },
 )
 EmployeeSchema.index({ tenantId: 1, active: 1 })
 
