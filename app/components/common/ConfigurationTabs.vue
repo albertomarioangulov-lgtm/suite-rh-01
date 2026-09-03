@@ -18,14 +18,15 @@ const activeTab = computed(() => {
 </script>
 
 <template>
-  <v-tabs v-model="activeTab" color="primary" class="mb-4">
-    <v-tab
-      value="company"
-      prepend-icon="mdi-office-building-outline"
-      to="/admin/configuration"
-    >
-      Empresa
-    </v-tab>
+  <ClientOnly>
+    <v-tabs v-model="activeTab" color="primary" class="mb-4">
+      <v-tab
+        value="company"
+        prepend-icon="mdi-office-building-outline"
+        to="/admin/configuration"
+      >
+        Empresa
+      </v-tab>
     <v-tab
       value="legal-params"
       prepend-icon="mdi-scale-balance"
@@ -82,5 +83,6 @@ const activeTab = computed(() => {
     >
       Evaluaciones
     </v-tab>
-  </v-tabs>
+    </v-tabs>
+  </ClientOnly>
 </template>

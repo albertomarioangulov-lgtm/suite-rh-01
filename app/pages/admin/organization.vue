@@ -736,20 +736,22 @@ const orgSunburstOptions = computed(() => {
       @click:close="error = ''"
     />
 
-    <v-tabs v-model="tab" density="comfortable" class="mb-4">
-      <v-tab value="sites" prepend-icon="mdi-map-marker-multiple-outline">
-        Sedes
-      </v-tab>
-      <v-tab value="departments" prepend-icon="mdi-office-building-outline">
-        Áreas
-      </v-tab>
-      <v-tab value="positions" prepend-icon="mdi-badge-account-outline">
-        Cargos
-      </v-tab>
-      <v-tab value="orgchart" prepend-icon="mdi-sitemap-outline">
-        Organigrama
-      </v-tab>
-    </v-tabs>
+    <ClientOnly>
+      <v-tabs v-model="tab" density="comfortable" class="mb-4">
+        <v-tab value="sites" prepend-icon="mdi-map-marker-multiple-outline">
+          Sedes
+        </v-tab>
+        <v-tab value="departments" prepend-icon="mdi-office-building-outline">
+          Áreas
+        </v-tab>
+        <v-tab value="positions" prepend-icon="mdi-badge-account-outline">
+          Cargos
+        </v-tab>
+        <v-tab value="orgchart" prepend-icon="mdi-sitemap-outline">
+          Organigrama
+        </v-tab>
+      </v-tabs>
+    </ClientOnly>
 
     <v-window v-model="tab">
       <!-- Sedes -->
