@@ -9,5 +9,18 @@ export default defineEventHandler(async (event) => {
   const tenantId = await getTenantId(event)
   if (!tenantId) return { items: [] }
   const items = await listSites(tenantId)
-  return { items }
+  return {
+    items: items.map((site) => ({
+      id: String(site._id),
+      name: site.name,
+      code: site.code ?? '',
+      city: site.city ?? '',
+      municipalityCode: site.municipalityCode ?? '',
+      address: site.address ?? '',
+      phone: site.phone ?? '',
+      isMain: site.isMain ?? false,
+      active: site.active ?? true,
+      sortOrder: site.sortOrder ?? 0,
+    })),
+  }
 })

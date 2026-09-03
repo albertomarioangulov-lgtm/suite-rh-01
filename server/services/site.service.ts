@@ -7,6 +7,9 @@ import type { z } from 'zod'
 type SiteCreateInput = z.infer<typeof siteCreateSchema>
 type SiteUpdateInput = z.infer<typeof siteUpdateSchema>
 
+const isDuplicateKey = (err: unknown): boolean =>
+  (err as { code?: number })?.code === 11000
+
 const unsetMain = async (tenantId: unknown) => {
   await Site.updateMany(
     { tenantId, isMain: true },
@@ -25,7 +28,17 @@ export const createSite = async (tenantId: unknown, data: SiteCreateInput) => {
   const count = await Site.countDocuments({ tenantId })
   const isMain = data.isMain ?? count === 0
   if (isMain) await unsetMain(tenantId)
-  return Site.create({ tenantId, ...data, isMain })
+  try {
+    return await Site.create({ tenantId, ...data, isMain })
+  } catch (err) {
+    if (isDuplicateKey(err)) {
+      throw createError({
+        statusCode: 409,
+        message: 'Ya existe una sede con ese nombre.',
+      })
+    }
+    throw err
+  }
 }
 
 /** Actualiza una sede y mantiene la regla de una sola principal. */
@@ -60,7 +73,17 @@ export const updateSite = async (
 
   const { isMain: _ignored, ...rest } = data
   Object.assign(site, rest, isMain !== undefined ? { isMain } : {})
-  await site.save()
+  try {
+    await site.save()
+  } catch (err) {
+    if (isDuplicateKey(err)) {
+      throw createError({
+        statusCode: 409,
+        message: 'Ya existe una sede con ese nombre.',
+      })
+    }
+    throw err
+  }
   return site.toJSON()
 }
 
