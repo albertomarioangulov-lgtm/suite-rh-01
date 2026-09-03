@@ -78,6 +78,8 @@ const EmployeeSchema = new Schema(
     position: { type: String, required: true, trim: true },
     /** Área o departamento de la organización (catálogo). */
     department: { type: Schema.Types.ObjectId, ref: 'Department', default: null },
+    /** Sede (ubicación física) donde trabaja el empleado (ADR-002). */
+    sedeId: { type: Schema.Types.ObjectId, ref: 'Site', default: null, index: true },
     /** Jefe directo del empleado (reporta a). */
     manager: { type: Schema.Types.ObjectId, ref: 'Employee', default: null },
     assignedShift: { type: Schema.Types.ObjectId, ref: 'Shift', default: null },

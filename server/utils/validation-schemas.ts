@@ -552,6 +552,30 @@ export const payrollUpdateSchema = z.object({
   employees: z.array(payrollAdjustmentSchema).optional(),
 })
 
+/** Sede (ADR-002): ubicación física bajo el mismo NIT. */
+export const siteCreateSchema = z.object({
+  name: z.string().trim().min(2, 'El nombre de la sede es requerido').max(80),
+  code: z.string().trim().max(20).optional().default(''),
+  city: z.string().trim().max(80).optional().default(''),
+  municipalityCode: z
+    .string()
+    .trim()
+    .max(10)
+    .refine(
+      (value) => value === '' || /^\d{5}$/.test(value),
+      'El código de municipio debe tener 5 dígitos (DIVIPOLA)',
+    )
+    .optional()
+    .default(''),
+  address: z.string().trim().max(200).optional().default(''),
+  phone: z.string().trim().max(30).optional().default(''),
+  isMain: z.boolean().optional().default(false),
+  active: z.boolean().optional().default(true),
+  sortOrder: z.number().int().min(0).optional().default(0),
+})
+
+export const siteUpdateSchema = siteCreateSchema.partial()
+
 /**
  * Valida datos desconocidos contra un esquema zod y lanza un error 400
  * con el detalle de los issues si la validación falla.

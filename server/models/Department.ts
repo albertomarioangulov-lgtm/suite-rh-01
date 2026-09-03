@@ -15,6 +15,8 @@ const DepartmentSchema = new Schema(
     name: { type: String, required: true, trim: true, maxlength: 80 },
     code: { type: String, trim: true, maxlength: 20, default: '' },
     description: { type: String, trim: true, maxlength: 300, default: '' },
+    /** Sede a la que pertenece el área (ADR-002). */
+    sedeId: { type: Schema.Types.ObjectId, ref: 'Site', default: null, index: true },
     /** Color identificador del área (hex) para gráficos y organigrama. */
     color: { type: String, default: '#1867C0', match: /^#[0-9a-fA-F]{6}$/ },
     /** Responsable del área (opcional). */
