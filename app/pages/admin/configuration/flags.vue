@@ -12,10 +12,23 @@ const { enabledFlags, loading, error, fetchFlags } = useFeatureFlagsState()
 
 const isAdmin = computed(() => user.value?.role === ROLES.ADMIN)
 const saving = ref(false)
+const companyConfigured = ref<boolean | null>(null)
 
 onMounted(() => {
   fetchFlags()
+  loadCompany()
 })
+
+const loadCompany = async () => {
+  try {
+    const company = await authFetch<{ _id?: string } | null>(
+      `${API_BASE}/company`,
+    )
+    companyConfigured.value = Boolean(company?._id)
+  } catch {
+    companyConfigured.value = false
+  }
+}
 
 const isEnabled = (flag: string) => enabledFlags.value.includes(flag as never)
 
@@ -28,8 +41,18 @@ const toggle = async (flag: string, enabled: boolean) => {
     })
     await fetchFlags()
     snackbar.success('Módulo actualizado')
-  } catch {
-    snackbar.error('No se pudo actualizar el módulo')
+  } catch (err) {
+    const apiError = err as
+      | { data?: { message?: string }; message?: string }
+      | null
+    const message =
+      apiError?.data?.message ||
+      apiError?.message ||
+      'No se pudo actualizar el módulo'
+    snackbar.error(message)
+    if (message.includes('Sin empresa activa')) {
+      companyConfigured.value = false
+    }
   } finally {
     saving.value = false
   }
@@ -78,6 +101,31 @@ const descriptions: Record<string, string> = {
       class="mb-4"
       text="Solo los administradores pueden activar o desactivar módulos."
     />
+
+    <v-alert
+      v-if="isAdmin && companyConfigured === false"
+      type="warning"
+      variant="tonal"
+      density="compact"
+      class="mb-4"
+      title="Primero configura la empresa"
+    >
+      <div class="d-flex align-center ga-2 flex-wrap">
+        <span>
+          Los módulos se activan por empresa. Guarda primero los datos del
+          cliente en Configuración → Empresa.
+        </span>
+        <v-btn
+          variant="tonal"
+          color="primary"
+          size="small"
+          prepend-icon="mdi-office-building-outline"
+          to="/admin/configuration"
+        >
+          Ir a Empresa
+        </v-btn>
+      </div>
+    </v-alert>
 
     <v-card :loading="loading">
       <v-card-item>
