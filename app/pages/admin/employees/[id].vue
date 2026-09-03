@@ -28,7 +28,7 @@ const {
   deleteEmployee,
 } = useEmployeeState()
 
-const isAdmin = computed(() => authUser.value?.role === ROLES.ADMIN)
+const isAdmin = computed(() => authUser.value?.role === ROLES.ADMIN || authUser.value?.role === ROLES.SUPERADMIN)
 const editOpen = ref(false)
 const deleteOpen = ref(false)
 const deleting = ref(false)
@@ -36,7 +36,7 @@ const deleting = ref(false)
 const canManage = computed(
   () =>
     !!authUser.value?.role &&
-    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR] as UserRole[]).includes(
+    ([ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.SUPERADMIN] as UserRole[]).includes(
       authUser.value.role,
     ),
 )
@@ -422,6 +422,11 @@ const doReject = async () => {
             Ausencias
           </v-btn>
         </div>
+        <CommonModuleRequestHint
+          v-if="canManage"
+          class="mt-2"
+          :suggest="['attendance', 'absences', 'shifts']"
+        />
       </div>
     </v-card>
 
